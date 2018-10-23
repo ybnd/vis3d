@@ -29,7 +29,7 @@ function I = blend_slice(C, slice, args)
     end
         
     try
-        subC = normalize(double(C(:,:,blend)) .* repmat(permute(window(blend > 0),[3,2,1]),[Nx,Ny,1]));
+        subC = normalize(double(C(:,:,blend)) .* repmat(permute(window(blend > 0),[3,2,1]),[Nx,Ny,1]), 'range');
         I = sum(subC,3);
     catch
         I = C(:,:,slice);
