@@ -1,3 +1,3 @@
 function I = normalize_slice(C,slice,~)
-    I = rescale(double(C(:,:,slice)));
+    I = normalize(C(:,:,slice), 'range');
 end
