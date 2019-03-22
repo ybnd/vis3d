@@ -21,6 +21,11 @@ classdef orthofig < handle
         contrast_method = @pass;
         slice_method = @normalize_slice;
         slice_args = struct();     
+        contrast_args = struct();
+        
+        do_db = false;
+        noise_floor = -30;
+        
         
         M = 1;
         z = 2;
@@ -144,12 +149,19 @@ classdef orthofig < handle
             addlistener(self.control.X_slider, 'Value', 'PostSet', @self.X_slider_callback);
 
             self.control.ui_contrast = uicontrol('Style', 'popupmenu', 'String', ...
-                {'none', 'imadjust', 'adapthisteq', 'dB'}, 'Position', [ap(3)+10, 58, 100, 12]);
+                {'none', 'imadjust', 'adapthisteq'}, 'Position', [ap(3)+10, 58, 100, 12]);
             addlistener(self.control.ui_contrast, 'Value', 'PostSet', @self.ui_contrast_callback);
 
             self.control.ui_contrast = uicontrol('Style', 'popupmenu', 'String', ...
                 {'gray', 'winter', 'parula'}, 'Position', [ap(3)+10, 38, 100, 12]);
             addlistener(self.control.ui_contrast, 'Value', 'PostSet', @self.ui_colormap_callback);
+            
+            self.control.ui_db = uicontrol('Style', 'togglebutton', 'String', 'dB?', ...
+                'Position', [ap(3)+10, 5, 50, 22], 'callback', @self.ui_toggle_db);
+            
+            
+            self.control.ui_db_floor = uicontrol('Style', 'edit', 'String', num2str(self.noise_floor), ...
+                'Position', [ap(3)+70, 5, 40, 24], 'KeyReleaseFcn', @self.ui_floor_callback);
 
             set(self.figure, 'WindowScrollWheelFcn', @self.scroll);
 
@@ -185,7 +197,12 @@ classdef orthofig < handle
             new_Z_slice = floor(get(eventdata.AffectedObject, 'Value'));
             self.current_slice(3) = new_Z_slice;
             self.control.Z_text.String = sprintf('z(%d)',new_Z_slice);
-            self.image.XY.set('CData', self.contrast_method(self.slice_method(self.C,new_Z_slice,self.slice_args)));
+            
+            if self.do_db
+                self.image.XY.set('CData', self.contrast_method(dB(self.slice_method(self.C,new_Z_slice,self.slice_args),self.noise_floor, true)));
+            else
+                self.image.XY.set('CData', self.contrast_method(self.slice_method(self.C,new_Z_slice,self.slice_args)));
+            end
 
             self.place_overlay;
         end
@@ -195,8 +212,13 @@ classdef orthofig < handle
             new_Y_slice = floor(get(eventdata.AffectedObject, 'Value'));
             self.current_slice(2) = new_Y_slice;
             self.control.Y_text.String = sprintf('y(%d)',new_Y_slice);
-            self.image.XZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[1,3,2]),new_Y_slice,self.slice_args)));
-
+            
+            if self.do_db
+                self.image.XZ.set('CData', self.contrast_method(dB(self.slice_method(permute(self.C,[1,3,2]),new_Y_slice,self.slice_args),self.noise_floor, true)));
+            else
+                self.image.XZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[1,3,2]),new_Y_slice,self.slice_args)));
+            end
+            
             self.place_overlay;
         end
 
@@ -205,7 +227,13 @@ classdef orthofig < handle
             new_X_slice = floor(get(eventdata.AffectedObject, 'Value'));
             self.current_slice(1) = new_X_slice;
             self.control.X_text.String = sprintf('x(%d)', new_X_slice);
-            self.image.YZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[3,2,1]),new_X_slice,self.slice_args)));
+            
+            if self.do_db
+                self.image.YZ.set('CData', self.contrast_method(dB(self.slice_method(permute(self.C,[3,2,1]),new_X_slice,self.slice_args), self.noise_floor, true)));
+            else
+                self.image.YZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[3,2,1]),new_X_slice,self.slice_args)));
+            end
+            
 
             self.place_overlay;        
         end
@@ -274,6 +302,11 @@ classdef orthofig < handle
             set(self.control.Y_slider, 'Value', pos(1));
             set(self.control.Z_slider, 'Value', pos(2));
         end
+        
+        function ui_toggle_db(self, ~, eventdata)
+           self.do_db = eventdata.Source.Value;
+           self.ui_update_images()
+        end
 
         function ui_contrast_callback(self, ~, eventdata)   
 
@@ -284,13 +317,31 @@ classdef orthofig < handle
                     self.contrast_method = @imadjust;
                 case 'adapthisteq'
                     self.contrast_method = @adapthisteq;
-                case 'dB'
-                    self.contrast_method = @imadjust_dB;
             end
 
-            self.image.XY.set('CData', self.contrast_method(self.slice_method(self.C, self.current_slice(3),self.slice_args)));
-            self.image.XZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[1,3,2]),self.current_slice(2),self.slice_args)));
-            self.image.YZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[3,2,1]),self.current_slice(1),self.slice_args)));
+            self.ui_update_images()
+        end
+        
+        function ui_update_images(self)
+            if self.do_db
+                self.image.XY.set('CData', self.contrast_method(dB(self.slice_method(self.C, self.current_slice(3),self.slice_args), self.noise_floor, true)));
+                self.image.XZ.set('CData', self.contrast_method(dB(self.slice_method(permute(self.C,[1,3,2]),self.current_slice(2),self.slice_args), self.noise_floor, true)));
+                self.image.YZ.set('CData', self.contrast_method(dB(self.slice_method(permute(self.C,[3,2,1]),self.current_slice(1),self.slice_args), self.noise_floor, true)));  
+            else
+                self.image.XY.set('CData', self.contrast_method(self.slice_method(self.C, self.current_slice(3),self.slice_args)));
+                self.image.XZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[1,3,2]),self.current_slice(2),self.slice_args)));
+                self.image.YZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[3,2,1]),self.current_slice(1),self.slice_args)));
+            end
+        end
+        
+        function ui_floor_callback(self, ~, eventdata)
+            key = get(gcf,'CurrentKey');
+            if (strcmp (key , 'return'))
+                self.noise_floor = str2num( eventdata.Source.String);
+                self.slice_args.floor = self.noise_floor;
+
+                self.ui_update_images()
+            end
         end
 
         function ui_colormap_callback(self, ~, eventdata)            
@@ -312,5 +363,16 @@ function I = pass(I); end
 function J = imadjust_dB(I)
         dBI = dB(I);
         J = imadjust(imgaussfilt(normalize(single(dB(I)) + max2(abs(dBI))), 0.5));
+end
+
+function J = floor_dB(I, args)
+    noise_floor = -30;
+    try 
+       noise_floor = args.floor;
+    catch         
+    end
+    J = normalize2(dB(I, noise_floor));
+    
+    disp('oop')
 end
 

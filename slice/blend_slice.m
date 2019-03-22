@@ -29,9 +29,16 @@ function I = blend_slice(C, slice, args)
     end
         
     try
-        subC = normalize(double(C(:,:,blend)) .* repmat(permute(window(blend > 0),[3,2,1]),[Nx,Ny,1]), 'range');
-        I = sum(subC,3);
-    catch
+        
+        subC = double(C(:,:,blend)) .* repmat(permute(window(blend > 0),[3,2,1]),[Nx,Ny,1]);
+        
+        norm_subC = zeros(size(subC));
+        for b = 1:length(blend)
+            norm_subC(:,:,b) = rescale(double(subC(:,:,b)));
+        end
+        
+        I = sum(norm_subC,3);
+    catch error
         I = C(:,:,slice);
         warning('Blended slice image could not be computed.')
     end    
