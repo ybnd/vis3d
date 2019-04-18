@@ -23,7 +23,7 @@ classdef orthofig < handle
         slice_args = struct();     
         contrast_args = struct();
         
-        do_db = false;
+        do_db = true;
         noise_floor = -30;
         
         
@@ -156,8 +156,8 @@ classdef orthofig < handle
                 {'gray', 'winter', 'parula'}, 'Position', [ap(3)+10, 38, 100, 12]);
             addlistener(self.control.ui_contrast, 'Value', 'PostSet', @self.ui_colormap_callback);
             
-            self.control.ui_db = uicontrol('Style', 'togglebutton', 'String', 'dB?', ...
-                'Position', [ap(3)+10, 5, 50, 22], 'callback', @self.ui_toggle_db);
+            self.control.ui_db = uicontrol('Style', 'togglebutton', 'String', 'dB', ...
+                'Position', [ap(3)+10, 5, 50, 22], 'Value', self.do_db, 'callback', @self.ui_toggle_db);
             
             
             self.control.ui_db_floor = uicontrol('Style', 'edit', 'String', num2str(self.noise_floor), ...
