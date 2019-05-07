@@ -1,0 +1,184 @@
+{
+    "Main":{
+        "Header Offset":8192,
+        "Static Pad":0,
+        "Scan Init Timestamp":"181003-13-04-25-.005",
+        "File":{
+            "Name":"F17_1B_5.bin",
+            "Folder":"ses",
+            "Description":"...",
+            "Category":3
+        }
+    },
+    "Scan":{
+        "Start":18220.0000000000,
+        "Stop":18355.0000000000,
+        "Step":0.500000000000000,
+        "N Steps":271,
+        "Progress":0.00000000000000,
+        "Current":0,
+        "Position":0.00000000000000
+    },
+    "Time":{
+        "Start Time":"",
+        "End Time":"",
+        "StartTick":0.00000000000000,
+        "EndTick":0.00000000000000,
+        "ElapsedTime":0.00000000000000,
+        "Position":{
+            "StartByte":8192,
+            "StopByte":48572,
+            "LastByte":8192
+        }
+    },
+    "Data":[
+        {
+            "Name":"cube",
+            "Dimensions":3,
+            "Size":[
+                512,
+                640,
+                271
+            ],
+            "dtype":"uint32",
+            "factor":1,
+            "Position":{
+                "StartByte":48572,
+                "StopByte":355253692,
+                "LastByte":355253692
+            }
+        },
+        {
+            "Name":"position",
+            "Dimensions":1,
+            "Size":[
+                271
+            ],
+            "dtype":"uint32",
+            "factor":1,
+            "Position":{
+                "StartByte":355253692,
+                "StopByte":355254776,
+                "LastByte":355254776
+            }
+        }
+    ],
+    "Setup":{
+        "MTS Config":{
+            "Serial Number":"83853631",
+            "Settings":{
+                "MoveSettings":{
+                    "DefAccn":1.50000000000000,
+                    "DefMaxVel":2.40000000000000,
+                    "DefMinVel":0.00000000000000
+                },
+                "JogSettings":{
+                    "JogStepSize":0.00500000000000000,
+                    "JogAccn":1.50000000000000,
+                    "JogMaxVel":2.00000000000000,
+                    "JogMinVel":0.00000000000000,
+                    "JogMode":2,
+                    "JogStopMode":2
+                },
+                "DriveArraySettings":{
+                    "Velocity1":0.600000000000000,
+                    "Velocity2":1.20000000000000,
+                    "Velocity3":1.80000000000000,
+                    "Velocity4":2.40000000000000
+                }
+            },
+            "PollSettings":{
+                "Static Wait (ms)":50,
+                "Polling Interval (ms)":50
+            }
+        },
+        "PSI":{
+            "Step Config":{
+                "StepPSI Config":{
+                    "Step Sequence":[
+                        -1.00000000000000,
+                        -0.500000000000000,
+                        0.00000000000000,
+                        0.500000000000000,
+                        1.00000000000000
+                    ],
+                    "factor":0.850000000000000,
+                    "Step Time (ms)":5.00000000000000
+                },
+                "PZT Config":{
+                    "PZTCalib":{
+                        "Phase":{
+                            "b":0.211000000000000,
+                            "a":23.0000000000000
+                        },
+                        "Distance":{
+                            "nm/mV":1.50000000000000
+                        }
+                    },
+                    "DAQmx Config":{
+                        "Mode":1,
+                        "VoltageLimits":{
+                            "Min (V)":-10.0000000000000,
+                            "Max (V)":10.0000000000000,
+                            "Expected Amplitude (V)":0.500000000000000,
+                            "Expected Max (V)":9.50000000000000,
+                            "Expected Min (V)":-9.50000000000000
+                        },
+                        "Sampling":{
+                            "Sample Rate (Hz)":10000.0000000000,
+                            "Sample Mode":10178,
+                            "Samples":50,
+                            "RegenMode":10097
+                        },
+                        "DAQmx Channels":[
+                            "Dev1/ao0"
+                        ]
+                    }
+                }
+            },
+            "Shift Config":{
+                "Specified":false
+            }
+        },
+        "Camera Config":{
+            "IMAQdx":{
+                "Session":"acA1300-60gmNIR",
+                "Camera Control Mode":0,
+                "Acquisition Mode":1,
+                "Buffers":1,
+                "Buffer Mode":1
+            },
+            "CameraAttributes":{
+                "Packet Size":8500,
+                "Pixel Format":17825797,
+                "Absolute FPS":50.0000000000000,
+                "Exposure (us)":1500.00000000000,
+                "Mirror X?":false,
+                "FPS?":true,
+                "Invert?":false,
+                "Binning":2,
+                "Binning Mode":0,
+                "Line Selector":0,
+                "Line Source":0,
+                "Readout Time":14705.0000000000,
+                "Resulting Frame Period":20004.0000000000,
+                "Resulting Frame Rate":49.9900019996001,
+                "X Resolution":640,
+                "Y Resolution":512,
+                "AOI OffsetX":0,
+                "AOI OffsetY":0,
+                "AOI CenterX":false,
+                "AOI CenterY":false,
+                "AOI Width":640,
+                "AOI Height":512,
+                "_Pixel Format":"Mono 12",
+                "_Binning Mode":"Summing",
+                "_Line Selector":"Line 1",
+                "_Line Source":"User Output"
+            }
+        },
+        "Image Config":{
+            "N Average":5
+        }
+    }
+}

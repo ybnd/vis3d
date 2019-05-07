@@ -1,0 +1,1 @@
+start /min cmd /c "py D:\Code\ocmbin\ocmbin_header.py %* && exit 0"
