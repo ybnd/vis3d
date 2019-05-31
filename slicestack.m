@@ -23,8 +23,11 @@ function fig = slicestack(fig, C, slice_method, slice_args)
     end
 
     if isempty(get(gca, 'Children'))
+        % Image display
         image = imshow_tight(slice_method(C,slice,slice_args), 150, [30,0,0,0]);
             [~, ~, Nz] = size(C);
+            
+        % Slice 'scanning' controls
         ui_text = uicontrol('style', 'text', ...
             'Position', [5,3,45,20], ...
             'String', sprintf('z(%d)',slice));
@@ -37,6 +40,10 @@ function fig = slicestack(fig, C, slice_method, slice_args)
         addlistener(ui_slider, 'Value', 'PostSet', @slider_callback);
         
         set(fig, 'WindowScrollWheelFcn', @scroll);
+        
+        % Image postprocessing controls
+        
+        
     end
 
     function slider_callback(~, eventdata)
