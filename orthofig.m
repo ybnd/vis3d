@@ -1,66 +1,32 @@
-classdef orthofig < handle 
-    %todo: maybe just inherit from figure? Or even an inheritance tree, where this inherits from slice...
-    
-    %ORTHOFIG Summary of this class goes here
-    %   Detailed explanation goes here
+classdef orthofig < stackfig 
     
     properties
-        C        
-        
         current_slice = [1,1,1];
         previous_slice = [1,1,1];   
     end
     
     properties (Access = private)        
-        image = struct();
         overlay = struct('alpha', 0.2, 'colormap', [0 0 0; 0 1 0]);
-        control = struct();
-        imagecontrol = struct()
         
-        M = 1;
         z = 2;
         pad = [75 0 0 0]
     end
     
-    properties
-        figure;
-        contrast_method;
-        slice_method;
-        slice_args;     
-        contrast_args;
-        
-        do_db = true;
-        noise_floor = -30;
-    end
-    
     methods 
-        function self = orthofig(C, fig, slice_method, slice_args, M, z) % todo: change signature!
+        function self = orthofig(C, fig, M, z)
             switch nargin
-                case 5
+                case 1
                     self.z = 2;
-                case 4
+                case 2
                     self.M = 1;
                     self.z = 2;
                 case 3
-                    slice_args = struct();
-                    M = 1;
-                    z = 2;
-                case 2
-                    slice_method = @normalize_slice;
-                    slice_args = struct();
-                    M = 1;
-                    z = 2;
-                case 1
                     fig = figure;
-                    slice_method = @normalize_slice;
-                    slice_args = struct();        
                     M = 1;
                     z = 2;
             end
             
             self.C = C;
-            self.slice_method = slice_method;
-            self.slice_args = slice_args;
             
             self.figure = fig; 
             set(self.figure, 'visible', 'off');
@@ -71,17 +37,10 @@ classdef orthofig < handle
             self.M = M;
             self.z = z;
             
-            self.build(self.M,self.z);
+            self.build;
         end
         
-        function build(self, M, z)
-            switch nargin
-                case 1
-                    self.M = M;
-                case 2
-                    self.M = M;
-                    self.z = z;
-            end
+        function build(self)
             [Nx, Ny, Nz] = size(self.C);
             
             [self.image.XY, self.image.XZ, self.image.YZ] = imshow_tight_ortho( ...
@@ -93,6 +52,7 @@ classdef orthofig < handle
             aXZ = copyobj(self.image.XZ.Parent, self.figure); cla(aXZ);
             aYZ = copyobj(self.image.YZ.Parent, self.figure); cla(aYZ);
             
+            % Create overlay images
             oXY = zeros(Nx, Ny); oXZ = zeros(Nx, Nz); oYZ = zeros(Nz,Ny);
             oXY(self.current_slice(1),:) = self.overlay.alpha;
             oXY(:,self.current_slice(2)) = self.overlay.alpha;
