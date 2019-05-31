@@ -11,26 +11,26 @@ classdef orthofig < handle
         previous_slice = [1,1,1];   
     end
     
-    properties (Access = private)        
+    properties (Access = private)
+        figure;
+        
         image = struct();
         overlay = struct('alpha', 0.2, 'colormap', [0 0 0; 0 1 0]);
         control = struct();
         imagecontrol = struct()
         
-        M = 1;
-        z = 2;
-        pad = [75 0 0 0]
-    end
-    
-    properties
-        figure;
-        contrast_method;
-        slice_method;
-        slice_args;     
-        contrast_args;
+        contrast_method = @pass;
+        slice_method = @normalize_slice;
+        slice_args = struct();     
+        contrast_args = struct();
         
         do_db = true;
         noise_floor = -30;
+        
+        
+        M = 1;
+        z = 2;
+        pad = [75 0 0 0]
     end
     
     methods 
@@ -152,12 +152,6 @@ classdef orthofig < handle
                 'SliderStep', [1/Nx, 1/Nx] ...
                 );
             addlistener(self.control.X_slider, 'Value', 'PostSet', @self.X_slider_callback);
-
-            set(self.figure, 'WindowScrollWheelFcn', @self.scroll);
-
-            self.overlay.XY.Parent.ButtonDownFcn = @XY_ButtonDownFcn;
-            self.overlay.XZ.Parent.ButtonDownFcn = @XZ_ButtonDownFcn;
-            self.overlay.YZ.Parent.ButtonDownFcn = @YZ_ButtonDownFcn;
             
             positions = struct(                                                 ...
                 'ui_contrast', [border, 58, w_img, 12],                         ...
@@ -165,9 +159,28 @@ classdef orthofig < handle
                 'ui_db', [border-1, border, w_db, 22],                          ...
                 'ui_db_floor', [border-1+w_db+2, border+1, w_img-w_db-1, 20]    ...
             );
-            images = [self.image.XY.Parent, self.image.XZ.Parent, self.image.YZ.Parent];
-        
-            self.imagecontrol = postprocon(self, positions, @self.ui_update_images, images);
+            self.imagecontrol = postprocon(self.figure, positions, @self.ui_update_images);
+
+            self.control.ui_contrast = uicontrol('Style', 'popupmenu', 'String', ...
+                {'none', 'imadjust', 'adapthisteq'}, 'Position', [border, 58, w_img, 12]);
+            addlistener(self.control.ui_contrast, 'Value', 'PostSet', @self.ui_contrast_callback);
+
+            self.control.ui_colormap = uicontrol('Style', 'popupmenu', 'String', ...
+                {'gray', 'winter', 'parula'}, 'Position', [border, 38, w_img, 12]);
+            addlistener(self.control.ui_contrast, 'Value', 'PostSet', @self.ui_colormap_callback);
+            
+            self.control.ui_db = uicontrol('Style', 'togglebutton', 'String', 'dB', ...
+                'Position', [border-1, border, w_db, 22], 'Value', self.do_db, 'callback', @self.ui_toggle_db);
+            
+            
+            self.control.ui_db_floor = uicontrol('Style', 'edit', 'String', num2str(self.noise_floor), ...
+                'Position', [border-1+w_db+2, border+1, w_img-w_db-1, 20], 'KeyReleaseFcn', @self.ui_floor_callback);
+
+            set(self.figure, 'WindowScrollWheelFcn', @self.scroll);
+
+            self.overlay.XY.Parent.ButtonDownFcn = @XY_ButtonDownFcn;
+            self.overlay.XZ.Parent.ButtonDownFcn = @XZ_ButtonDownFcn;
+            self.overlay.YZ.Parent.ButtonDownFcn = @YZ_ButtonDownFcn;
             
             set(self.figure, 'visible', 'on')
         end
@@ -303,10 +316,6 @@ classdef orthofig < handle
             set(self.control.Z_slider, 'Value', pos(2));
         end
         
-        
-    end
-    
-    methods(Access = public)
         function ui_update_images(self)
             if self.do_db
                 self.image.XY.set('CData', self.contrast_method(dB(self.slice_method(self.C, self.current_slice(3),self.slice_args), self.noise_floor, true)));
@@ -320,3 +329,24 @@ classdef orthofig < handle
         end    
     end
 end
+
+
+%% Contrast functions
+function I = pass(I); end
+
+function J = imadjust_dB(I)
+        dBI = dB(I);
+        J = imadjust(imgaussfilt(normalize(single(dB(I)) + max2(abs(dBI))), 0.5));
+end
+
+function J = floor_dB(I, args)
+    noise_floor = -30;
+    try 
+       noise_floor = args.floor;
+    catch         
+    end
+    J = normalize2(dB(I, noise_floor));
+    
+    disp('oop')
+end
+
