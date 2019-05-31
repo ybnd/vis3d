@@ -1,6 +1,6 @@
-classdef ocmbin < dynamicprops   
-%{
-    Reader for .bin OCM files
+classdef ocmbin < bincube   
+%  Reader for .bin OCM files
+%{  
             Cube:         3d image
             Position:     scan position vector
             Data:         generic additional data
@@ -9,50 +9,19 @@ classdef ocmbin < dynamicprops
                                       PSI & DAQ settings
 %}
     properties
-        cube                                            % 3d dataset
-        position                                        % scan position vector
-        data                                            % generic data struct
-        MD                                              % metadata
-        path                                            % file path
         tifs                                            % references to generated .tif files (for external viewing)
     end
     properties(Hidden = true)
         cube_reduced
         header
         headerParser                                    % header tagStringParser object
-        dtype                                           % dtype of data regions (default: u32)
         overlap                                         % bool: overlap between adjacent data regions?    
         overbytes                                       % bytes of overlap between adjacent data reions
-        filesize                                        % size of file in bytes
-        filesize_gb                                     % size of file in GB
-        memory_limit                                    % size limit for loading files into RAM
         io_timings                                      % file i/o timing information
         datasets                                        % names of included datasets; what was the point of this?
-        slice_fig
-        topdown_fig
-        ortho_fig
-        is_loaded = false
     end
     
-    methods 
-        function self = ocmbin(path, do_load, dtype)
-            % Reads header (metadata) and data from .ocmbin file specified by path.
-            switch nargin
-                case 1
-                    dtype = '*uint32';
-                    do_load = true;
-                case 2
-                    dtype = '*uint32';
-            end
-            
-            self.path = path;
-            self.dtype = dtype;
-            
-            if do_load
-                self.load_data     
-            end
-        end        
-        
+    methods          
         function load_data(self)
             if ~self.is_loaded
                 full_read = tic;            
@@ -117,6 +86,9 @@ classdef ocmbin < dynamicprops
                 if ~isfield(self.MD, 'Data') % rename metadate fields in case older file is loaded
                     self.rename_MD_fields() 
                 end
+                
+                self.name = self.MD.Main.File.Name;
+                self.description = self.MD.Main.File.Description;
 
                 self.MD.Main.Dir = dir(self.path);
                 self.filesize = b2relevant(self.MD.Main.Dir.bytes); 
@@ -344,80 +316,7 @@ classdef ocmbin < dynamicprops
         function descale(self)     
             %%% Divide by MD.Data.(...).factor if needed. %%%            
         end
-        
-        function zprof(self, loc, do_fwhm)
-            switch nargin 
-                case 1
-                    loc = floor(self.position/2);
-                    do_fwhm = true;
-                case 2
-                    do_fwhm = true;
-            end
-           
-            live_A_scan(self.cube, loc, 1:length(self.position), 5, 1, do_fwhm, false);
-        end
-        
-        function plane = zplane(self, k)
-            if ischar(k)
-                switch k
-                    case 'start'
-                        k = 1;
-                    case 'middle'
-                        k = round(length(self.position)/2);
-                    case 'end'
-                        k = length(self.position);
-                end
-            end
-            plane = normalize2(self.cube(:,:,k));
-        end
-        
-        function slice(self, plane)
-            switch nargin
-                case 1
-                    plane = 'XY';
-            end
-            
-            self.slice_fig = figure('Name', self.MD.Main.File.Name);
-            
-            switch plane
-                case 'XZ'
-                    slice_cube = permute(self.cube, [1,3,2]);
-                case 'YZ'
-                    slice_cube = permute(self.cube, [2,3,1]);
-                case 'ZX'
-                    slice_cube = permute(self.cube, [3,1,2]);
-                case 'ZY'
-                    slice_cube = permute(self.cube, [3,2,1]);
-                case 'YX'
-                    slice_cube = permute(self.cube, [2,1,3]);
-                case 'XY'
-                    slice_cube = self.cube;
-                otherwise
-                    slice_cube = self.cube;
-            end
-            
-            slicestack(self.slice_fig, slice_cube, @normalize_slice) % todo: should have same contrast stuff as ortho...
-        end
-        
-        function ortho(self, M, z)
-            switch nargin
-                case 1
-                    [~, cube_Ny, ~] = size(self.cube);
-                    r = monitor_resolution();
-                    M = r(2) / cube_Ny / 1.8; % Default: XY image -> roughly half of max monitor height
-                    z = 2;
-                case 2
-                    z = 2;
-            end
-            self.ortho_fig = figure('Name', self.MD.Main.File.Name, 'visible', 'off');
-            orthofig(self.cube, self.ortho_fig, @normalize_slice, struct(), M, z);
-        end
-        
-        function topdown(self)
-           self.topdown_fig = figure('Name', self.MD.Main.File.Name);
-           imshow_tight(normalize(sum(self.cube,3)));
-        end
-%         
+         
         function ij(self, zrange)
             switch nargin
                 case 1
