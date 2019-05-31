@@ -6,7 +6,7 @@ function [handle_XY, handle_XZ, handle_YZ] = imshow_tight_ortho(image, slice, sl
     
     switch nargin
         case 4
-            M = 100;
+            M = 1;
             z = M;
             pad = [0,0,0,0] + default_pad;
         case 5

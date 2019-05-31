@@ -1,8 +1,8 @@
-classdef postprocon < handle
+classdef postprocon < dynamicprops
     properties  
        parent
        figure
-       update_callback = @pass;
+       update_callback = @pass_data;
        
        ui_contrast
        ui_colormap
@@ -30,7 +30,7 @@ classdef postprocon < handle
             switch nargin
                 case 4
                     defaults = struct(                              ...
-                        'contrast_method', @pass,                   ...
+                        'contrast_method', @pass_data,                   ...
                         'slice_method', @normalize_slice,           ...
                         'contrast_args', struct(),                  ...
                         'slice_args', struct(),                     ...
@@ -132,5 +132,3 @@ classdef postprocon < handle
         end
     end
 end
-
-function x = pass(x); end

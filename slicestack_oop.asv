@@ -1,0 +1,31 @@
+classdef slicestack_oop < stackfig
+    properties   
+        current_slice = 1;
+    end
+    
+    properties (Access = private)
+        image = struct()
+    end
+    
+    methods
+        function self = slicestack_oop(C, fig)
+            switch varargin
+                case 1
+                    fig = figure;
+            end
+            
+            self.C = C;
+            
+            self.figure = fig;
+            set(self.figure, 'visible', 'off');
+            set(self.figure, 'UserData', self);
+            set(self.figure, 'MenuBar', 'none');
+            set(self.figure, 'Resize', 'off');
+            
+            self.build
+        end
+        
+        function bu
+    end
+    
+end
