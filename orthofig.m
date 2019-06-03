@@ -1,4 +1,4 @@
-classdef orthofig < stackfig 
+classdef orthofig < cubefig 
     
     properties
         current_slice = [1,1,1];
@@ -18,11 +18,11 @@ classdef orthofig < stackfig
                 case 1
                     self.z = 2;
                 case 2
-                    self.M = 1;
+                    self.M = 100;
                     self.z = 2;
                 case 3
                     fig = figure;
-                    M = 1;
+                    M = 100;
                     z = 2;
             end
             
