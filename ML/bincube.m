@@ -60,6 +60,11 @@ classdef bincube < dynamicprops
             end
         end
         
+        function sobj = saveobj(self)
+            sobj = self;  
+            sobj.unload_data()                              
+        end
+        
         function zprof(self, loc, do_fwhm)
             % Interactive z-profile window
             switch nargin 
@@ -88,11 +93,14 @@ classdef bincube < dynamicprops
             plane = normalize2(self.cube(:,:,k));
         end
         
-        function slice(self, plane)
+        function sf = slice(self, plane, method)
             % Slice display (scroll to scan through the cube)
             switch nargin
                 case 1
                     plane = 'XY';
+                    method = @normalize_slice;
+                case 2
+                    method = @normalize_slice;
             end
             
             self.slice_fig = figure('Name', self.name);
@@ -114,10 +122,10 @@ classdef bincube < dynamicprops
                     slice_cube = self.cube;
             end
             
-            slicestack(self.slice_fig, slice_cube, @normalize_slice) % todo: should have same contrast stuff as ortho...
+            sf = slicefig(slice_cube, self.slice_fig, method, struct()); % todo: should have same contrast stuff as ortho...
         end
         
-        function ortho(self, M, z)
+        function of = ortho(self, M, z)
             %{ 
                 Orthographic views of the cube
                     Scan over z: Scroll
@@ -135,7 +143,7 @@ classdef bincube < dynamicprops
                     z = 2;
             end
             self.ortho_fig = figure('Name', self.name, 'visible', 'off');
-            orthofig(self.cube, self.ortho_fig, @normalize_slice, struct(), M, z);
+            of = orthofig(self.cube, self.ortho_fig, M, z);
         end
         
         function topdown(self)
@@ -155,5 +163,3 @@ classdef bincube < dynamicprops
         end
     end
 end
-
-function x = pass(x); end

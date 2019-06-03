@@ -56,7 +56,7 @@ classdef ocmbin < bincube
                 self.data = {};
                 
                 self.is_loaded = false;
-            end
+             end
         end
         
         function parseMetadata(self)      
