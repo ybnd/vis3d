@@ -1,8 +1,8 @@
-classdef stackfig < handle
+classdef cubefig < handle
 	properties
         C
        
-        figure;
+        figure = false;
         contrast_method = @pass_data;
         slice_method = @normalize_slice;
         contrast_args = struct();
@@ -17,10 +17,17 @@ classdef stackfig < handle
         control = struct();
         imagecontrol = struct()
         
-        M = 0.9;
+        M = 100;
     end
     
     methods (Abstract = true)
         build(self);
+    end
+    
+    methods
+        function close(self)
+            close(self.figure);
+            self.figure = false;
+        end
     end
 end
