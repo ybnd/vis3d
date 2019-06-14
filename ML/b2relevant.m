@@ -1,4 +1,5 @@
 function [out_string, out, unit] = b2relevant(in, precision)
+% Convert bytes to 'relevant' unit (B, KB, MB, ...) depending on size
     switch nargin
         case 0
             error('No inout')
