@@ -22,6 +22,6 @@ function handle = imshow_tight(image, magn, pad)
     fpos = get(gcf, 'position');
     
     set(gcf, 'position', [fpos(1), fpos(2), hpos(3), hpos(4)]+dfpos)
-    set(gca, 'position', [0,0,hpos(3),hpos(4)] + dhpos)   
+    set(gca, 'position', [0,0,hpos(3),hpos(4)] + dhpos)
 end
 

@@ -121,7 +121,7 @@ classdef postprocon < dynamicprops
 
             switch eventdata.AffectedObject.String{get(eventdata.AffectedObject, 'Value')}
                 case 'none'
-                    self.contrast_method = @pass;
+                    self.contrast_method = @pass_data;
                 case 'imadjust'
                     self.contrast_method = @imadjust;
                 case 'adapthisteq'

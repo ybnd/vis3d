@@ -96,6 +96,8 @@ classdef cube_ROIs < handle
             try
                 close(self.fig)
                 close(self.sf)
+            catch err
+                
             end
             self.sf = false;
             self.I.unload_data()
