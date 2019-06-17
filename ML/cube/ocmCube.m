@@ -18,7 +18,7 @@ classdef ocmCube < Cube
         dtype = '*uint32';
     end
     
-    methods          
+    methods            
         function load_data(self)
             if ~self.is_loaded
                 full_read = tic;            
@@ -32,9 +32,7 @@ classdef ocmCube < Cube
     %                 warning('Data cannot be loaded')
     %             end
 
-                read_time = toc(data_read);     
-
-                self.descale            
+                read_time = toc(data_read);              
 
                 self.io_timings.writeTime = self.meta.Time.ElapsedTime;
                 self.io_timings.dataReadTime = read_time;
@@ -44,16 +42,26 @@ classdef ocmCube < Cube
                 self.is_loaded = true;
             end
         end
-        
-        function unload_data(self)
-            if self.is_loaded
-                self.cube_reduced = zeros(1,1,1);
-                self.data = {};
-                
-                self.is_loaded = false;
-             end
+
+        function ij(self, zrange)
+            switch nargin
+                case 1
+                    zrange = 1:length(self.zpos);
+            end
+            
+            if ~exist('MIJ', 'class')
+                Miji;
+            end
+            
+            if isempty(self.cube_reduced)
+                self.cube_reduced = uint16(rescale(self.cube, 0, 2^16));
+            end
+            
+            MIJ.createImage(self.meta.Main.File.Name, self.cube_reduced(:,:,zrange), true);
         end
-        
+    end   
+    
+    methods(Access = private)
         function parseMetadata(self)      
             
             f = fopen(self.path, 'rb');
@@ -75,6 +83,7 @@ classdef ocmCube < Cube
                 try % or JSON oops               
                     self.meta = jsondecode(self.header);
                 catch err % JSON formatting error or corrupt file
+                    warning(err.identifier, '%s', err.message);
                     self.meta = jsondecode(normalize_json(self.header));
                 end
 
@@ -173,7 +182,6 @@ classdef ocmCube < Cube
             end
             
             fields = fieldnames(self.meta.Data);
-            N = length(fields); 
             
             % OCM cube
             start = self.meta.Data.cube.Position.StartByte;
@@ -306,26 +314,5 @@ classdef ocmCube < Cube
                 error('Size over 8 GB, to be implemented with memmap')
             end
         end
-        
-        function descale(self)     
-            %%% Divide by meta.Data.(...).factor if needed. %%%            
-        end
-         
-        function ij(self, zrange)
-            switch nargin
-                case 1
-                    zrange = 1:length(self.zpos);
-            end
-            
-            if ~exist('MIJ', 'class')
-                Miji;
-            end
-            
-            if isempty(self.cube_reduced)
-                self.cube_reduced = uint16(rescale(self.cube, 0, 2^16));
-            end
-            
-            MIJ.createImage(self.meta.Main.File.Name, self.cube_reduced(:,:,zrange), true);
-        end
-    end    
+    end
 end

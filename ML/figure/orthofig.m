@@ -16,13 +16,13 @@ classdef orthofig < cubefig
         function self = orthofig(C, fig, M, z)
             switch nargin
                 case 1
-                    self.z = 2;
-                case 2
-                    self.M = 100;
-                    self.z = 2;
-                case 3
                     fig = figure;
                     M = 100;
+                    z = 2;
+                case 2
+                    M = 100;
+                    z = 2;
+                case 3
                     z = 2;
             end
             

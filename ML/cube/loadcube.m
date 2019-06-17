@@ -6,14 +6,16 @@ function C = loadcube(varargin)
     switch getExtension(path)
         case ''
             if isfolder(path)
-                % Maybe: check if .tiff / .tif files in that folder
+                % todo: check if .tiff files in that folder
                 CubeClass = @tifCube;
             end
+        case '.tif'
+            CubeClass = @tifCube;
         case '.oct'
             CubeClass = @thorCube;
         case {'.ocmbin', '.ocm'}
             CubeClass = @ocmCube;
-        case '.bin'
+        case {'.bin'}
             if isempty(getSubExtension(path))
                 CubeClass = @ocmCube;
             end
