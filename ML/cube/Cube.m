@@ -21,7 +21,7 @@ classdef Cube < dynamicprops
         is_loaded = false
     end
     
-    methods(Access = private)
+    methods(Access = public)
         function check_path(self)
             if ~isfile(self.path) && ~isfile(sprintf('%s.json', self.path)) && ~isempty(self.path)
                 error('File does not exist: %s', self.path);
@@ -33,30 +33,7 @@ classdef Cube < dynamicprops
             sobj.unload_data()                              
         end
         
-        function [do_save, path, options] = resolve_save(self, path, options)
-            do_save = true;
-            
-            switch nargin
-                case 1
-                    path = self.path;
-                    options = struct();
-                case 2
-                    options = struct();
-            end
-            
-            if isempty(path)
-                    path = self.path;
-            end
-            
-            if exist(path, 'file') == 2
-                switch lower(input('Overwrite file? (y/n) \n', 's'))
-                    case {'y', 't', '1'}
-                        do_save = true;
-                    case {'n', 'f', '0'}      
-                        do_save = false;
-                end
-            end
-        end
+        
         
         function save_data(self, path, options)
             [do_save, path, ~] = self.resolve_save(path, options);
@@ -312,6 +289,31 @@ classdef Cube < dynamicprops
                     warning('Unrecognized specification for data field %s', d.name);                    
                 end
             end            
+        end
+        
+        function [do_save, path, options] = resolve_save(self, path, options)
+            do_save = true;
+            
+            switch nargin
+                case 1
+                    path = self.path;
+                    options = struct();
+                case 2
+                    options = struct();
+            end
+            
+            if isempty(path)
+                    path = self.path;
+            end
+            
+            if exist(path, 'file') == 2
+                switch lower(input('Overwrite file? (y/n) \n', 's'))
+                    case {'y', 't', '1'}
+                        do_save = true;
+                    case {'n', 'f', '0'}      
+                        do_save = false;
+                end
+            end
         end
         
         function save(self, format, process, path, options)

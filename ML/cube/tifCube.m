@@ -3,7 +3,7 @@ classdef tifCube < Cube
         files
     end
     
-    methods(Access = private)
+    methods(Access = public)
         function load_data(self)
             % Requires 'Multipage TIFF stack' to be in the MATLAB path
             % https://nl.mathworks.com/matlabcentral/fileexchange/35684-multipage-tiff-stack?focused=7519470&tab=function
@@ -20,6 +20,13 @@ classdef tifCube < Cube
         end  
         
         function save_data(self, path, options)
+            switch nargin
+                case 1
+                    path = self.path;
+                    options = struct();
+                case 2
+                    options = struct();
+            end
             [do_save, path, options] = self.resolve_save(path, options);
             
             if do_save

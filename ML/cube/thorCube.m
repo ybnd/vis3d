@@ -20,7 +20,7 @@ classdef thorCube < Cube
                 self.meta = self.h.head;     
 
                 % Load intensity cube from .oct file
-                cube = OCTFileGetIntensity(self.h);                              
+                cube = single(OCTFileGetIntensity(self.h));   % .oct stores cube as 32-bit float                        
                 % Transform from dB to ~ 'regular' intensity (match OCMCube)            
 %                 cube = 10.^(drop(cube)/10);   this is relatively unuseful, and takes a long time
                 % Transpose to (X,Y,Z) orientation. If the 'cube' is actually 2d, an error may be thrown.
@@ -53,7 +53,8 @@ classdef thorCube < Cube
         end
         
         function preview(self)
-            imshow_tight(self.preview_image, 'Name', self.name);
+            figure('Name', sprintf('%s - preview image', self.name));
+            imshow_tight(self.data.preview_image);
         end
     end
 end
