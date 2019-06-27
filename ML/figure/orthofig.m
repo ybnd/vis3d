@@ -13,17 +13,22 @@ classdef orthofig < cubefig
     end
     
     methods 
-        function self = orthofig(C, fig, M, z)
+        function self = orthofig(C, fig, M, z, slice_method)
             switch nargin
                 case 1
                     fig = figure;
                     M = 100;
                     z = 2;
+                    slice_method = @normalize_slice;
                 case 2
                     M = 100;
                     z = 2;
+                    slice_method = @normalize_slice;
                 case 3
                     z = 2;
+                    slice_method = @normalize_slice;
+                case 4
+                    slice_method = @normalize_slice;
             end
             
             self.C = C;
@@ -36,6 +41,7 @@ classdef orthofig < cubefig
             
             self.M = M;
             self.z = z;
+            self.slice_method = slice_method;
             
             self.build;
         end

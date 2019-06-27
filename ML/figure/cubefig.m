@@ -12,7 +12,7 @@ classdef cubefig < handle
         noise_floor = -30;
     end
     
-    properties (Access = protected)
+    properties (Access = public)
         image = struct();
         control = struct();
         imagecontrol = struct()

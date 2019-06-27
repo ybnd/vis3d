@@ -25,13 +25,7 @@ function [out] = dB(in, floor, do_renormalize)
     end
     
     if do_renormalize            % better to do a 'real' rescale 
-       if length(size(out)) == 3
-           out = normalize3(out);
-       elseif length(size(out)) == 2
-           out = normalize2(out);
-       elseif length(size(out)) == 1
-           out = normalize(out, 'range');
-       end
+       out = rescale(out);
     end
 end
 

@@ -1,11 +1,8 @@
-function [outputArg1,outputArg2] = savecube(C, path, options, process_method)
+function savecube(C, path, process_method)
     % Save cube as binary or .tif stack
     
     switch nargin
         case 2
-            options = struct();
-            process_method = @pass_data;
-        case 3
             process_method = @pass_data;
     end
     
@@ -18,10 +15,12 @@ function [outputArg1,outputArg2] = savecube(C, path, options, process_method)
             CubeClass = @Cube;
         case '.tif'
             CubeClass = @tifCube;
+        otherwise 
+            error('Only .bin and .tif formats are supported')  
     end
     
     tempCube = CubeClass('', false);
     tempCube.cube = process_method(C.cube);
-    tempCube.save_data(path, options);
+    tempCube.save_data(path);
 end
 
