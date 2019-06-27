@@ -209,32 +209,43 @@ classdef Cube < dynamicprops
             sf = slicefig(slice_cube, f, method, struct()); % todo: should have same contrast stuff as ortho...
         end
         
-        function of = ortho(self, M, z)   % todo: set default M & z ~ cube size & monitor size
+        function of = ortho(self, M, z, slice_method)
             %{ 
                 Orthographic views of the cube
                     Scan over z: Scroll
                               x: Shift + Scroll
                               y: Ctrl + Scroll
             %}
-
+            
             switch nargin
                 case 1
-                    [~, cube_Ny, cube_Nz] = size(self.cube);
-                    r = monitor_resolution();
-                    z = min([2, r(2) / cube_Nz * (2/5)]); % Default: XZ image -> 1/3 of max monitor height or 2 if too large
-                    if z == 2
-                        M = r(2) / cube_Ny * (3/5); % Default: XY image -> 2/3 of max monitor height // doesn't work well with Thorlabs OCT cubes (muuch more z pixels, need to count other projections also)
-                    else
-                        M = r(2) / cube_Ny * (2/5); % Default: XY image -> 2/3 of max monitor height // doesn't work well with Thorlabs OCT cubes (muuch more z pixels, need to count other projections also)
-                    end
-                        
+                    M = NaN;  % todo: triggers the following if statement (ugly ugh)
+                    z = NaN;     
+                    slice_method = @normalize_slice;
                 case 2
-                    z = 2;
+                    z = NaN;
+                    slice_method = @normalize_slice;
+                case 3
+                    slice_method = @normalize_slice;
             end
+            
+            if isnan(M) && isnan(z)
+                [~, cube_Ny, cube_Nz] = size(self.cube);
+                r = monitor_resolution();
+                z = min([2, r(2) / cube_Nz * (2/5)]); % Default: XZ image -> 1/3 of max monitor height or 2 if too large
+                if z == 2
+                    M = r(2) / cube_Ny * (3/5); % Default: XY image -> 2/3 of max monitor height // doesn't work well with Thorlabs OCT cubes (muuch more z pixels, need to count other projections also)
+                else
+                    M = r(2) / cube_Ny * (2/5); % Default: XY image -> 2/3 of max monitor height // doesn't work well with Thorlabs OCT cubes (muuch more z pixels, need to count other projections also)
+                end
+            elseif isnan(z)
+                z = 2;
+            end
+            
             f = figure('Name', self.name, 'visible', 'off');
             self.figures = [self.figures, f];
             
-            of = orthofig(self.cube, f, M, z);
+            of = orthofig(self.cube, f, M, z, slice_method);
         end
         
         function topdown(self)
@@ -296,14 +307,14 @@ classdef Cube < dynamicprops
             
             switch nargin
                 case 1
-                    path = self.path;
+                    path = '';
                     options = struct();
                 case 2
                     options = struct();
             end
             
             if isempty(path)
-                    path = self.path;
+                    path = [remove_extension(self.path)];
             end
             
             if exist(path, 'file') == 2

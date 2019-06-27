@@ -22,11 +22,16 @@ classdef tifCube < Cube
         function save_data(self, path, options)
             switch nargin
                 case 1
-                    path = self.path;
+                    path = '';
                     options = struct();
                 case 2
                     options = struct();
             end
+            
+            if isempty(path)
+               path = [remove_extension(self.path) '.tif']; 
+            end
+            
             [do_save, path, options] = self.resolve_save(path, options);
             
             if do_save
