@@ -36,6 +36,14 @@ classdef Cube < dynamicprops
         
         
         function save_data(self, path, options)
+            switch nargin
+                case 1
+                    path = '';
+                    options = struct();
+                case 2
+                    options = struct();
+            end
+            
             [do_save, path, ~] = self.resolve_save(path, options);
 
             if do_save
@@ -149,7 +157,12 @@ classdef Cube < dynamicprops
         end
         
         function z = zpos(self)
-            z = self.data.zpos;
+            if isfield(self.data, 'zpos')
+                z = self.data.zpos;
+            else
+                [~,~,Nz] = size(self.cube);
+                z = 1:Nz;
+            end
         end
         
         function zprof(self, loc, do_fwhm)
@@ -157,13 +170,13 @@ classdef Cube < dynamicprops
             % todo: doesn't work anymore
             switch nargin 
                 case 1
-                    loc = floor(length(self.data.zpos/2));
+                    loc = floor(length(self.zpos/2));
                     do_fwhm = true;
                 case 2
                     do_fwhm = true;
             end
            
-            live_A_scan(self.cube, loc, self.data.zpos, 5, 1, do_fwhm, false);
+            live_A_scan(self.cube, loc, self.zpos, 5, 1, do_fwhm, false);
         end
         
         function plane = zplane(self, k)
@@ -181,13 +194,17 @@ classdef Cube < dynamicprops
             plane = normalize2(self.cube(:,:,k));
         end
         
-        function sf = slice(self, plane, method)
+        function sf = slice(self, plane, M, method)
             % Slice display (scroll to scan through the cube)
             switch nargin
                 case 1
                     plane = 'XY';
+                    M = 100;
                     method = @normalize_slice;
                 case 2
+                    M = 100;
+                    method = @normalize_slice;
+                case 3
                     method = @normalize_slice;
             end
             
@@ -206,7 +223,7 @@ classdef Cube < dynamicprops
             f = figure('Name', sprintf('%s (%s)', self.name, plane));
             self.figures = [self.figures, f];
             
-            sf = slicefig(slice_cube, f, method, struct()); % todo: should have same contrast stuff as ortho...
+            sf = slicefig(slice_cube, f, method, struct(), M); % todo: should have same contrast stuff as ortho...
         end
         
         function of = ortho(self, M, z, slice_method)
@@ -314,7 +331,7 @@ classdef Cube < dynamicprops
             end
             
             if isempty(path)
-                    path = [remove_extension(self.path)];
+                    path = remove_extension(self.path);
             end
             
             if exist(path, 'file') == 2

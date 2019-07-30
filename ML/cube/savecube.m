@@ -11,7 +11,7 @@ function savecube(C, path, process_method)
     end
 
     switch getExtension(path)
-        case '.bin'
+        case {'.bin', ''}
             CubeClass = @Cube;
         case '.tif'
             CubeClass = @tifCube;
