@@ -185,18 +185,20 @@ classdef ocmCube < Cube
             
             % OCM cube
             start = self.meta.Data.cube.Position.StartByte;
-            shape = self.meta.Data.cube.Size';                    
+            shape = self.meta.Data.cube.Size';      
+            type = ['*' self.meta.Data.cube.dtype];
             
-            self.cube = self.readRegion(start, shape, load_mode);
+            self.cube = self.readRegion(start, shape, load_mode, type);
             self.cube = permute(self.cube, [2,1,3]);
             i = find(strcmp(fields,'cube'));
             fields{i} = '';
             
             % Scan position vector
             start = self.meta.Data.position.Position.StartByte;
-            shape = self.meta.Data.position.Size;                
+            shape = self.meta.Data.position.Size;   
+            type = ['*' self.meta.Data.position.dtype]; 
            
-            self.data.zpos = self.readRegion(start, shape, load_mode);            
+            self.data.zpos = self.readRegion(start, shape, load_mode, type);            
             i = find(strcmp(fields,'position'));
             fields{i} = '';
             
@@ -204,9 +206,10 @@ classdef ocmCube < Cube
             for i = 1:length(fields) % rest of the data
                 if ~isempty(fields{i}) % better to 'pop' elements from the cell array...
                     start = self.meta.Data.(fields{i}).Position.StartByte;
-                    shape = self.meta.Data.(fields{i}).Size';                
+                    shape = self.meta.Data.(fields{i}).Size';          
+                    type = ['*' self.meta.Data.(fields{i}).dtype];
                     
-                    self.data.(fields{i}) = self.readRegion(start, shape, load_mode);
+                    self.data.(fields{i}) = self.readRegion(start, shape, load_mode, type);
                     
                 end
             end
@@ -269,8 +272,6 @@ classdef ocmCube < Cube
                 case 4
                     dtype = self.dtype;
             end
-            
-            
             
             dimensions = length(shape);
             len = prod(shape);
