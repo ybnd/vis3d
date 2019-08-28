@@ -9,6 +9,15 @@ function savecube(C, path, process_method)
     if ~isa(C, 'Cube')
         error('First argument must be an instance of Cube or a Cube subclass');
     end
+    
+    if ~java.io.File(path).isAbsolute()
+        if ~isempty(C.path)
+            [folder, ~, ~] = fileparts(C.path);
+        else
+            folder = pwd;
+        end
+        path = fullfile(folder, path);
+    end
 
     switch getExtension(path)
         case {'.bin', ''}
@@ -19,8 +28,14 @@ function savecube(C, path, process_method)
             error('Only .bin and .tif formats are supported')  
     end
     
-    tempCube = CubeClass('', false);
-    tempCube.cube = process_method(C.cube);
+    tempCube = CubeClass('', false);    
+
+    tempCube.name = C.name;
+    tempCube.desc = C.desc;
+    tempCube.cube = process_method(C.cube);    
+    tempCube.data = C.data;
+    tempCube.meta = C.meta;
+    
     tempCube.save_data(path);
 end
 

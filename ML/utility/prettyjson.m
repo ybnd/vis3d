@@ -7,7 +7,7 @@ TAB = '    ';
     ugly = strrep(ugly, '{', sprintf('{\n')); 
     ugly = strrep(ugly, '}', sprintf('\n}')); 
     ugly = strrep(ugly, ',"', sprintf(', \n"'));
-    ugly = strrep(ugly, ',{', sprintf(', \n{"'));
+    ugly = strrep(ugly, ',{', sprintf(', \n{'));
 
     indent = 0;
     lines = splitlines(ugly);
@@ -36,9 +36,16 @@ TAB = '    ';
         elseif open_brackets == close_brackets && length(line) <= MAX_WIDTH
             pass
         elseif open_brackets == close_brackets && length(line) > MAX_WIDTH
-            line = strrep(line, '[', sprintf('[\n%s', TAB)); 
-            line = strrep(line, ']', sprintf('\n]')); 
-            line = strrep(line, ',', sprintf(', \n%s', TAB)); % Add indents!
+            first_close_bracket = strfind(line, ']');
+            if first_close_bracket > MAX_WIDTH % Just a long array -> each element on a new line
+                line = strrep(line, '[', sprintf('[\n%s', TAB)); 
+                line = strrep(line, ']', sprintf('\n]')); 
+                line = strrep(line, ',', sprintf(', \n%s', TAB)); % Add indents!
+            else % Nested array, probably 2d, first level is not too wide -> each sub-array on a new line
+                line = strrep(line, '[[', sprintf('[\n%s[', TAB)); 
+                line = strrep(line, '],', sprintf('], \n%s', TAB)); % Add indents!
+                line = strrep(line, ']]', sprintf(']\n]'));
+            end
         end
 
         sublines = splitlines(line);
@@ -66,6 +73,4 @@ TAB = '    ';
 %     less_ugly = strrep(less_ugly, ']', sprintf('\n]')); 
 
 %     less_ugly = strrep(less_ugly, ',', sprintf(', \n')); 
-
-    
 end

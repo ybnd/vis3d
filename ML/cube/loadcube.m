@@ -22,4 +22,5 @@ function C = loadcube(varargin)
     end
 
     C = CubeClass(varargin{:});
+    C.path = path;
 end

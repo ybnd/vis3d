@@ -1,8 +1,23 @@
 classdef Cube < dynamicprops
 % Interface to 3d data   
 %{
-    - Image cubes are considered as Z-stacks of XY images
+Description:
+============
+    - Image cubes are considered as Z-stacks of XY images (images are confusing, so can be YX too)
+        * self.cube                     3d array
+    - Additional data in self.data
+        * self.data.zpos                physical position of each cube in the stack
+                                            does not take into account the units; this is up to you & common sense
+    - Optional metadata in self.meta
+
+
     
+File format & i/o:
+==================
+    - Consists of a <path>.json header file, a <path>.cube file (binary) and i optional <path>.data<i> files (binary)
+        * The dimensions and data types of the binary files are listed in the header
+        * Additional data arrays with dimensions smaller than 640x480 are stored directly in the header
+        * Measurement name, description and optional metadata are listed in the header
 %}
 
     properties
@@ -57,7 +72,7 @@ classdef Cube < dynamicprops
 
                 for i = 1:length(dataspec)
                     try
-                        if prod(dataspec{i}.size) > 1000
+                        if prod(dataspec{i}.size) > 640*480 % everything smaller than a VGA image -> save in .json
                             if strcmp(dataspec{i}.name, 'cube')
                                 id = 'cube';
                                 data_i = self.cube;
@@ -66,16 +81,16 @@ classdef Cube < dynamicprops
                                 data_i = self.data.(dataspec{i}.name);
                             end
 
-                            savepath = sprintf('%s.%s.bin', path, id);
+                            savepath = sprintf('%s.%s', path, id);
                             [~, savename, saveext] = fileparts(savepath);
                             dataspec{i}.path = [savename, saveext];
                             
                             fid = fopen(savepath, 'wb+');
-                            fwrite(fid, data_i, dataspec{i}.dtype);
+                            fwrite(fid, data_i, dataspec{i}.type);
                             fclose(fid);
                         else
-                            dataspec{i} = rmfield(dataspec{i}, {'size', 'dtype'});  
-                            dataspec{i}.data = self.data.(dataspec{i}.name);
+                            dataspec{i}.(dataspec{i}.name) = self.data.(dataspec{i}.name);
+                            dataspec{i} = rmfield(dataspec{i}, {'size', 'type', 'name'});                              
                         end
                     catch err
                         warning('Could not process dataspec %d \n %s', i, err.message);
@@ -100,13 +115,13 @@ classdef Cube < dynamicprops
             dataspec = cell(length(self.data)+1,1);
 
             % Cube data
-            dataspec{1} = struct('name', 'cube', 'size', size(self.cube), 'dtype', class(self.cube));      
+            dataspec{1} = struct('name', 'cube', 'size', size(self.cube), 'type', class(self.cube));      
 
             % Arbitrary data
             datasets = fields(self.data);
             for i = 1:length(datasets)
                 d = datasets{i};
-                dataspec{1+i} = struct('name', datasets{i}, 'size', size(self.data.(d)), 'dtype', class(self.data.(d)));
+                dataspec{1+i} = struct('name', datasets{i}, 'size', size(self.data.(d)), 'type', class(self.data.(d)));
             end
             
             % Remove empty fields from dataspec
@@ -289,21 +304,21 @@ classdef Cube < dynamicprops
         
         function load_data(self)  % todo: refactor everything to load / unload!
             [folder, file, ~] = fileparts(self.path);            
-            hdr = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));
+            header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));
             
-            self.name = hdr.name; self.desc = hdr.desc; self.meta = hdr.meta;
+            self.name = header.name; self.desc = header.desc; self.meta = header.meta;
             
-            for i = 1:length(hdr.data)
+            for i = 1:length(header.data)
                 try
-                    d = hdr.data{i};
+                    d = header.data{i};
                 catch
-                    d = hdr.data;
+                    d = header.data;
                 end
                 if isfield(d,'name') && isfield(d,'data')
                     self.data.(d.name) = d.data;
-                elseif isfield(d,'name') && isfield(d,'size') && isfield(d,'dtype') && isfield(d,'path')
+                elseif isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
                     fid = fopen([folder '/' d.path], 'rb+');
-                    A = fread(fid, prod(d.size), d.dtype);
+                    A = cast(fread(fid, prod(d.size), d.type), d.type);
                     fclose(fid);
                     A = reshape(A, d.size');
                     
@@ -313,8 +328,11 @@ classdef Cube < dynamicprops
                         otherwise
                             self.data.A = A;
                     end                    
+                elseif length(fields(d)) == 1
+                    dfields = fields(d);
+                    self.data.(dfields{1}) = d.(dfields{1});
                 else
-                    warning('Unrecognized specification for data field %s', d.name);                    
+                    warning('Unrecognized specification for data field %s', d);                    
                 end
             end            
         end
@@ -359,7 +377,7 @@ classdef Cube < dynamicprops
             switch lower(format)
                 case {'tif', 'tiff'}
                     tempCube = tifCube(self.path, false);
-                case {'', 'bin'}
+                case {'', '.cube', '.json'}
                     tempCube = Cube(self.path, false);
             end
 
