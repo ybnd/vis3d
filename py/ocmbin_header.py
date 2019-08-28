@@ -2,7 +2,7 @@ import argparse
 import subprocess
 import os
 import re
-from py.ocmbin import ocmbin
+from ocmbin import ocmbin
 
 parser = argparse.ArgumentParser()
 parser.add_argument('file', type=str, help='.ocmbin file', default='test.bin')
@@ -18,12 +18,12 @@ if __name__ == '__main__':
     directory, file = os.path.split(args.file)
     fname, ext = os.path.splitext(file)
 
-    if not os.path.isdir(os.path.join(directory, 'tmp')):
-        os.mkdir(os.path.join(directory, 'tmp'))
+#    if not os.path.isdir(os.path.join(directory, 'tmp')):
+#        os.mkdir(os.path.join(directory, 'tmp'))
 
-    output_file = os.path.join(directory, 'tmp', file + '-header.txt')
+    output_file = os.path.join(directory, fname + '.json')
 
     with open(output_file, 'w+') as f:
         f.write(re.sub(r'\r\n', r'\n', header))
 
-    subprocess.call(['notepad++', output_file])
+#    subprocess.call(['notepad++', output_file])
