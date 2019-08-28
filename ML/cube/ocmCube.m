@@ -32,7 +32,7 @@ classdef ocmCube < Cube
     %                 warning('Data cannot be loaded')
     %             end
 
-                read_time = toc(data_read);              
+                read_time = toc(data_read);
 
                 self.io_timings.writeTime = self.meta.Time.ElapsedTime;
                 self.io_timings.dataReadTime = read_time;
@@ -68,7 +68,25 @@ classdef ocmCube < Cube
             fseek(f, 0, 'bof');
 %             self.header = fgetl(f); 
 
-            self.header = strcat(fread(f, 8192, '*char')');
+%             self.header = strcat(fread(f, 8192, '*char')');
+
+            header_candidate = strcat(fread(f, 8192, '*char')');
+            try
+                meta_candidate = jsondecode(header_candidate);
+                self.meta = meta_candidate;
+                self.header = header_candidate;
+            catch err
+                try % or JSON oops               
+                    header_candidate = strcat(fread(f, 32768, '*char')');  % New file spec - longer header
+                    meta_candidate = jsondecode(header_candidate);
+                    self.meta = meta_candidate;
+                    self.header = header_candidate;
+                catch err2 % JSON formatting error or corrupt file
+                    warning(err2.identifier, '%s', err2.message);
+                    self.meta = jsondecode(normalize_json(self.header));
+                end
+            end
+
             fclose(f);            
             
             if isempty(self.header)
@@ -80,12 +98,7 @@ classdef ocmCube < Cube
 
                 % json parser gets confused when it encounters the header padding.
                 
-                try % or JSON oops               
-                    self.meta = jsondecode(self.header);
-                catch err % JSON formatting error or corrupt file
-                    warning(err.identifier, '%s', err.message);
-                    self.meta = jsondecode(normalize_json(self.header));
-                end
+                
 
                 if ~isfield(self.meta, 'Data') % rename metadate fields in case older file is loaded
                     self.rename_MD_fields() 

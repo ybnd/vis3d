@@ -1,8 +1,12 @@
 function [less_ugly] = prettyjson(ugly)
 % Makes JSON strings (relatively) pretty
+% Probably inefficient
 
-MAX_WIDTH = 80;
-TAB = '    ';
+% Mostly meant for structures with simple strings and arrays;  
+% gets confused and !!mangles!! JSON when strings contain [ ] { or }. 
+
+    MAX_ARRAY_WIDTH = 80;
+    TAB = '    ';
     
     ugly = strrep(ugly, '{', sprintf('{\n')); 
     ugly = strrep(ugly, '}', sprintf('\n}')); 
@@ -26,18 +30,16 @@ TAB = '    ';
         if close_brackets > open_brackets || close_braces > open_braces
             indent = indent - 1;
         end
-        
+
         if open_brackets > close_brackets
             line = strrep(line, '[', sprintf('[\n'));
             next_indent = 1;
         elseif open_brackets < close_brackets
             line = strrep(line, ']', sprintf('\n]'));
             next_indent = -1;
-        elseif open_brackets == close_brackets && length(line) <= MAX_WIDTH
-            pass
-        elseif open_brackets == close_brackets && length(line) > MAX_WIDTH
+        elseif open_brackets == close_brackets && length(line) > MAX_ARRAY_WIDTH
             first_close_bracket = strfind(line, ']');
-            if first_close_bracket > MAX_WIDTH % Just a long array -> each element on a new line
+            if first_close_bracket > MAX_ARRAY_WIDTH % Just a long array -> each element on a new line
                 line = strrep(line, '[', sprintf('[\n%s', TAB)); 
                 line = strrep(line, ']', sprintf('\n]')); 
                 line = strrep(line, ',', sprintf(', \n%s', TAB)); % Add indents!
@@ -62,15 +64,8 @@ TAB = '    ';
         end
         indent = indent + next_indent;
         lines{i} = strjoin(sublines, newline); 
-        
+
     end
 
-    
     less_ugly = strjoin(lines, newline);
-    
-
-%     less_ugly = strrep(less_ugly, '[', sprintf('[\n')); 
-%     less_ugly = strrep(less_ugly, ']', sprintf('\n]')); 
-
-%     less_ugly = strrep(less_ugly, ',', sprintf(', \n')); 
 end
