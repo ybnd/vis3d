@@ -253,12 +253,12 @@ File format & i/o:
                 case 1
                     M = NaN;  % todo: triggers the following if statement (ugly ugh)
                     z = NaN;     
-                    slice_method = @normalize_slice;
+                    slice_method = @slice;
                 case 2
                     z = NaN;
-                    slice_method = @normalize_slice;
+                    slice_method = @slice;
                 case 3
-                    slice_method = @normalize_slice;
+                    slice_method = @slice;
             end
             
             if isnan(M) && isnan(z)

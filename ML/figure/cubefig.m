@@ -4,12 +4,13 @@ classdef cubefig < handle
        
         figure = false;
         contrast_method = @pass_data;
-        slice_method = @normalize_slice;
+        slice_method = @slice;
         contrast_args = struct();
         slice_args = struct();
 
         do_db = true;
-        noise_floor = -30;
+        noise_floor = 0;
+        signal_ceil = 90;
     end
     
     properties (Access = public)

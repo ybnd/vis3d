@@ -1,3 +1,14 @@
-function I = normalize_slice(C,s,~)
-    I = rescale(double(C(:,:,s)));
+function I = normalize_slice(C,s,axis,~)
+    assert(isa('axis','char'))
+
+    switch lower(axis)
+        case 'x'
+            I = permute(C(s,:,:), [3,2,1]);
+        case 'y'
+            I = permute(C(:,s,:), [1,3,2]);
+        otherwise
+            I = C(:,:,s);
+    end
+    
+    I = rescale(single(I));
 end

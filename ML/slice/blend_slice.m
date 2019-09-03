@@ -1,8 +1,9 @@
-function I = blend_slice(C, slice, args)
+function I = blend_slice(C, slice, axis, args)
 %{ 
-    Returns a blended en-face slice I of 3D image C. 
+    Returns a blended slice I of 3D image C. 
         C:      a 3d array
         slice:  integer number to slice from C
+        axis:   axis to slice through
         args:   a struct of arguments 
                     args.blendN:    number of slices to blend into I
                     args.window:    windowing function handle (e.g. @gausswin, @boxcar, ...)
@@ -10,6 +11,8 @@ function I = blend_slice(C, slice, args)
 
         I:      en-face image: I ~ C(:,:,slice)
 %}
+
+    assert(isa('axis','char'));
 
     switch nargin
         case 2
@@ -30,16 +33,27 @@ function I = blend_slice(C, slice, args)
         
     try
         
-        subC = double(C(:,:,blend)) .* repmat(permute(window(blend > 0),[3,2,1]),[Nx,Ny,1]);
+        switch lower(axis)
+            case 'x'
+                subC = double(C(blend,:,:)) .* repmat(window(blend > 0),[1,Ny,Nz]);
+                subC = permute(subC, [3,2,1]);
+            case 'y'
+                subC = double(C(:,blend,:)) .* repmat(window(blend > 0),[Nx,1,Nz]);
+                subC = permute(subC, [1,3,2]);
+            otherwise
+                subC = double(C(:,:,blend)) .* repmat(permute(window(blend > 0),[3,2,1]),[Nx,Ny,1]);                
+        end
         
         norm_subC = zeros(size(subC));
         for b = 1:length(blend)
             norm_subC(:,:,b) = rescale(double(subC(:,:,b)));
         end
+
+        I = sum(norm_subC,3);         
         
-        I = sum(norm_subC,3);
+        
     catch error
         I = C(:,:,slice);
-        warning('Blended slice image could not be computed.')
+        warning(error, 'Blended slice image could not be computed.')
     end    
 end

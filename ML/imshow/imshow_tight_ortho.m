@@ -21,9 +21,9 @@ function [handle_XY, handle_XZ, handle_YZ] = imshow_tight_ortho(image, slice, sl
     dfpos = [0 0 pad(3)+pad(4) pad(1)+pad(2)];
     dhpos = [pad(3) pad(1) 0 0];
     
-    XY = slice_method(image,slice(3),slice_args);
-    XZ = slice_method(permute(image,[1,3,2]),slice(2),slice_args);
-    YZ = slice_method(permute(image,[3,2,1]),slice(1),slice_args);
+    XY = slice_method(image,slice(3),'z',slice_args);
+    XZ = slice_method(image,slice(2),'y',slice_args);
+    YZ = slice_method(image,slice(1),'x',slice_args);
     
     [Ny,Nx,Nz] = size(image);
     X = Nx*M;

@@ -19,16 +19,16 @@ classdef orthofig < cubefig
                     fig = figure;
                     M = 100;
                     z = 2;
-                    slice_method = @normalize_slice;
+                    slice_method = @slice;
                 case 2
                     M = 100;
                     z = 2;
-                    slice_method = @normalize_slice;
+                    slice_method = @slice;
                 case 3
                     z = 2;
-                    slice_method = @normalize_slice;
+                    slice_method = @slice;
                 case 4
-                    slice_method = @normalize_slice;
+                    slice_method = @slice;
             end
             
             self.C = C;
@@ -87,7 +87,7 @@ classdef orthofig < cubefig
             w_img = 80;     % image controls width
             d_img_xyz = 20; % distance between image controls and axis controls
             w_lab = 40;     % axis control label width
-            w_db = 30;      % width of db button
+            w_db = 45;      % width of db button
 
             self.control.Z_slider = uicontrol('style', 'slider', ...
                 'Position', [border + w_img + d_img_xyz+w_lab,5,w_xy - w_img - d_img_xyz-w_lab,20] ,...
@@ -126,15 +126,16 @@ classdef orthofig < cubefig
             self.overlay.YZ.Parent.ButtonDownFcn = @YZ_ButtonDownFcn;
             
             positions = struct(                                                 ...
-                'ui_contrast', [border, 58, w_img, 12],                         ...
-                'ui_colormap', [border, 38, w_img, 12],                         ...
-                'ui_db', [border-1, border, w_db, 22],                          ...
-                'ui_db_floor', [border-1+w_db+2, border+1, w_img-w_db-1, 20]    ...
+                'ui_colormap', [border, 58, w_img, 12],                         ...
+                'ui_db', [border-1, border+20, w_db, 22],                          ...
+                'ui_db_floor', [border+w_db, border, w_img-w_db-1,20],    ...
+                'ui_db_ceil', [border+w_db, border+1+20, w_img-w_db-1, 20]    ...
             );
             images = [self.image.XY.Parent, self.image.XZ.Parent, self.image.YZ.Parent];
         
             self.imagecontrol = postprocon(self, positions, @self.ui_update_images, images);
             
+            self.ui_update_images;
             set(self.figure, 'visible', 'on')
         end
         
@@ -165,9 +166,9 @@ classdef orthofig < cubefig
             self.control.Z_text.String = sprintf('z(%d)',new_Z_slice);
             
             if self.do_db
-                self.image.XY.set('CData', self.contrast_method(dB(self.slice_method(self.C,new_Z_slice,self.slice_args),self.noise_floor, true)));
+                self.image.XY.set('CData', dBs(self.slice_method(self.C,new_Z_slice,'z',self.slice_args),self.noise_floor, self.signal_ceil));
             else
-                self.image.XY.set('CData', self.contrast_method(self.slice_method(self.C,new_Z_slice,self.slice_args)));
+                self.image.XY.set('CData', self.slice_method(self.C,new_Z_slice, 'z',self.slice_args));
             end
 
             self.place_overlay;
@@ -180,9 +181,9 @@ classdef orthofig < cubefig
             self.control.Y_text.String = sprintf('y(%d)',new_Y_slice);
             
             if self.do_db
-                self.image.XZ.set('CData', self.contrast_method(dB(self.slice_method(permute(self.C,[1,3,2]),new_Y_slice,self.slice_args),self.noise_floor, true)));
+                self.image.XZ.set('CData', dBs(self.slice_method(self.C,new_Y_slice,'y',self.slice_args),self.noise_floor, self.signal_ceil));
             else
-                self.image.XZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[1,3,2]),new_Y_slice,self.slice_args)));
+                self.image.XZ.set('CData', self.slice_method(self.C,new_Y_slice,'y',self.slice_args));
             end
             
             self.place_overlay;
@@ -195,9 +196,9 @@ classdef orthofig < cubefig
             self.control.X_text.String = sprintf('x(%d)', new_X_slice);
             
             if self.do_db
-                self.image.YZ.set('CData', self.contrast_method(dB(self.slice_method(permute(self.C,[3,2,1]),new_X_slice,self.slice_args), self.noise_floor, true)));
+                self.image.YZ.set('CData', dBs(self.slice_method(self.C,new_X_slice,'x',self.slice_args), self.noise_floor, self.signal_ceil));
             else
-                self.image.YZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[3,2,1]),new_X_slice,self.slice_args)));
+                self.image.YZ.set('CData', self.slice_method(self.C,new_X_slice,'x',self.slice_args));
             end
             
 
@@ -205,22 +206,22 @@ classdef orthofig < cubefig
         end
 
         function place_overlay(self)
-            alpha_XY = get(self.overlay.XY, 'AlphaData');
-            alpha_XZ = get(self.overlay.XZ, 'AlphaData');
-            alpha_YZ = get(self.overlay.YZ, 'AlphaData');
-
-            alpha_XY(self.previous_slice(1),:) = 0; alpha_XY(self.current_slice(1),:) = self.overlay.alpha;
-            alpha_XY(:,self.previous_slice(2)) = 0; alpha_XY(:,self.current_slice(2)) = self.overlay.alpha;
-
-            alpha_XZ(:,self.previous_slice(3)) = 0; alpha_XZ(:,self.current_slice(3)) = self.overlay.alpha;
-            alpha_XZ(self.previous_slice(1),:) = 0; alpha_XZ(self.current_slice(1),:) = self.overlay.alpha;
-
-            alpha_YZ(:,self.previous_slice(2)) = 0; alpha_YZ(:,self.current_slice(2)) = self.overlay.alpha;
-            alpha_YZ(self.previous_slice(3),:) = 0; alpha_YZ(self.current_slice(3),:) = self.overlay.alpha;   
-
-            set(self.overlay.XY, 'AlphaData', alpha_XY);
-            set(self.overlay.XZ, 'AlphaData', alpha_XZ);
-            set(self.overlay.YZ, 'AlphaData', alpha_YZ);
+%             alpha_XY = get(self.overlay.XY, 'AlphaData');
+%             alpha_XZ = get(self.overlay.XZ, 'AlphaData');
+%             alpha_YZ = get(self.overlay.YZ, 'AlphaData');
+% 
+%             alpha_XY(self.previous_slice(1),:) = 0; alpha_XY(self.current_slice(1),:) = self.overlay.alpha;
+%             alpha_XY(:,self.previous_slice(2)) = 0; alpha_XY(:,self.current_slice(2)) = self.overlay.alpha;
+% 
+%             alpha_XZ(:,self.previous_slice(3)) = 0; alpha_XZ(:,self.current_slice(3)) = self.overlay.alpha;
+%             alpha_XZ(self.previous_slice(1),:) = 0; alpha_XZ(self.current_slice(1),:) = self.overlay.alpha;
+% 
+%             alpha_YZ(:,self.previous_slice(2)) = 0; alpha_YZ(:,self.current_slice(2)) = self.overlay.alpha;
+%             alpha_YZ(self.previous_slice(3),:) = 0; alpha_YZ(self.current_slice(3),:) = self.overlay.alpha;   
+% 
+%             set(self.overlay.XY, 'AlphaData', alpha_XY);
+%             set(self.overlay.XZ, 'AlphaData', alpha_XZ);
+%             set(self.overlay.YZ, 'AlphaData', alpha_YZ);
         end
 
         function scroll(self, source, eventdata)
@@ -275,13 +276,13 @@ classdef orthofig < cubefig
     methods(Access = public)
         function ui_update_images(self)
             if self.do_db
-                self.image.XY.set('CData', self.contrast_method(dB(self.slice_method(self.C, self.current_slice(3),self.slice_args), self.noise_floor, true)));
-                self.image.XZ.set('CData', self.contrast_method(dB(self.slice_method(permute(self.C,[1,3,2]),self.current_slice(2),self.slice_args), self.noise_floor, true)));
-                self.image.YZ.set('CData', self.contrast_method(dB(self.slice_method(permute(self.C,[3,2,1]),self.current_slice(1),self.slice_args), self.noise_floor, true)));  
+                self.image.XY.set('CData', dBs(self.slice_method(self.C,self.current_slice(3),'z',self.slice_args), self.noise_floor, self.signal_ceil));
+                self.image.XZ.set('CData', dBs(self.slice_method(self.C,self.current_slice(2),'y',self.slice_args), self.noise_floor, self.signal_ceil));
+                self.image.YZ.set('CData', dBs(self.slice_method(self.C,self.current_slice(1),'x',self.slice_args), self.noise_floor, self.signal_ceil));  
             else
-                self.image.XY.set('CData', self.contrast_method(self.slice_method(self.C, self.current_slice(3),self.slice_args)));
-                self.image.XZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[1,3,2]),self.current_slice(2),self.slice_args)));
-                self.image.YZ.set('CData', self.contrast_method(self.slice_method(permute(self.C,[3,2,1]),self.current_slice(1),self.slice_args)));
+                self.image.XY.set('CData', self.slice_method(self.C,self.current_slice(3),'z',self.slice_args));
+                self.image.XZ.set('CData', self.slice_method(self.C,self.current_slice(2),'y',self.slice_args));
+                self.image.YZ.set('CData', self.slice_method(self.C,self.current_slice(1),'x',self.slice_args));
             end
         end    
     end

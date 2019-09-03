@@ -45,7 +45,7 @@ classdef slicefig < cubefig
             % Image display
             if isempty(fields(self.image))
                 self.image.XY = imshow_tight(                                       ...
-                    self.slice_method(self.C,self.current_slice,self.slice_args),   ...
+                    self.slice_method(self.C,self.current_slice,'z',self.slice_args),   ...
                     self.M, self.pad                                                ...
                 );
 
@@ -83,7 +83,7 @@ classdef slicefig < cubefig
             self.current_slice = floor(get(eventdata.AffectedObject, 'Value'));
             eventdata.AffectedObject.Parent.UserData = self.current_slice;
             self.control.ui_text.String = sprintf('z(%d)',self.current_slice);
-            self.image.XY.set('CData', self.slice_method(self.C, self.current_slice, self.slice_args));
+            self.image.XY.set('CData', self.slice_method(self.C, self.current_slice, 'z', self.slice_args));
         end
         
         function scroll_callback(self, ~, eventdata)
