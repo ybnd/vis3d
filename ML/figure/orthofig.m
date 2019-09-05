@@ -10,6 +10,9 @@ classdef orthofig < cubefig
         
         z = 2;
         pad = [75 0 0 0]
+        
+        roaming = false;
+        size = [0,0,0];
     end
     
     methods 
@@ -32,6 +35,7 @@ classdef orthofig < cubefig
             end
             
             self.C = C;
+            self.size = size(C);
             
             self.figure = fig; 
             set(self.figure, 'visible', 'off');
@@ -47,9 +51,9 @@ classdef orthofig < cubefig
         end
         
         function build(self)
-            [Nx, Ny, Nz] = size(self.C);
+            Nx = self.size(1); Ny = self.size(2); Nz = self.size(3);  
             
-            [self.image.XY, self.image.XZ, self.image.YZ] = imshow_tight_ortho( ...
+            [self.image.XY, self.image.XZ, self.image.YZ, self.image.overlay] = imshow_tight_ortho( ...
                 self.C, self.current_slice, self.slice_method, self.slice_args, ...
                 self.M, self.z, self.pad ...
             );
@@ -57,28 +61,6 @@ classdef orthofig < cubefig
             aXY = copyobj(self.image.XY.Parent, self.figure); cla(aXY);
             aXZ = copyobj(self.image.XZ.Parent, self.figure); cla(aXZ);
             aYZ = copyobj(self.image.YZ.Parent, self.figure); cla(aYZ);
-            
-            % Create overlay images
-            oXY = zeros(Nx, Ny); oXZ = zeros(Nx, Nz); oYZ = zeros(Nz,Ny);
-            oXY(self.current_slice(1),:) = self.overlay.alpha;
-            oXY(:,self.current_slice(2)) = self.overlay.alpha;
-            oXZ(self.current_slice(1),:) = self.overlay.alpha;
-            oXZ(:,self.current_slice(3)) = self.overlay.alpha;
-            oYZ(self.current_slice(3),:) = self.overlay.alpha;
-            oYZ(:,self.current_slice(2)) = self.overlay.alpha;
-            
-            set(self.figure, 'CurrentAxes', aXY); 
-            self.overlay.XY = imshow(ones(Nx,Ny), 'Colormap', self.overlay.colormap);
-            aXY.DataAspectRatio = self.image.XY.Parent.DataAspectRatio;
-            set(self.figure, 'CurrentAxes', aXZ);
-            self.overlay.XZ = imshow(ones(Nx,Nz), 'Colormap', self.overlay.colormap);
-            aXZ.DataAspectRatio = self.image.XZ.Parent.DataAspectRatio;
-            set(self.figure, 'CurrentAxes', aYZ);
-            self.overlay.YZ = imshow(ones(Nz,Ny), 'Colormap', self.overlay.colormap);
-            aYZ.DataAspectRatio = self.image.YZ.Parent.DataAspectRatio;
-            set(self.overlay.XY, 'AlphaData', oXY);
-            set(self.overlay.XZ, 'AlphaData', oXZ);
-            set(self.overlay.YZ, 'AlphaData', oYZ);
 
             ap = get(gca, 'Position');
             
@@ -121,10 +103,12 @@ classdef orthofig < cubefig
 
             set(self.figure, 'WindowScrollWheelFcn', @self.scroll);
 
-            self.overlay.XY.Parent.ButtonDownFcn = @XY_ButtonDownFcn;
-            self.overlay.XZ.Parent.ButtonDownFcn = @XZ_ButtonDownFcn;
-            self.overlay.YZ.Parent.ButtonDownFcn = @YZ_ButtonDownFcn;
-            
+            set(self.image.XY, 'ButtonDownFcn', @self.XY_ButtonDownFcn);
+            set(self.image.XZ, 'ButtonDownFcn', @self.XZ_ButtonDownFcn);
+            set(self.image.YZ, 'ButtonDownFcn', @self.YZ_ButtonDownFcn);
+            set(self.figure, 'WindowButtonUpFcn', @self.ButtonUpFcn);
+            set(self.figure, 'WindowButtonMotionFcn', @self.Roam);
+
             positions = struct(                                                 ...
                 'ui_colormap', [border, 58, w_img, 12],                         ...
                 'ui_db', [border-1, border+20, w_db, 22],                          ...
@@ -200,28 +184,27 @@ classdef orthofig < cubefig
             else
                 self.image.YZ.set('CData', self.slice_method(self.C,new_X_slice,'x',self.slice_args));
             end
-            
 
             self.place_overlay;        
         end
 
-        function place_overlay(self)
-%             alpha_XY = get(self.overlay.XY, 'AlphaData');
-%             alpha_XZ = get(self.overlay.XZ, 'AlphaData');
-%             alpha_YZ = get(self.overlay.YZ, 'AlphaData');
-% 
-%             alpha_XY(self.previous_slice(1),:) = 0; alpha_XY(self.current_slice(1),:) = self.overlay.alpha;
-%             alpha_XY(:,self.previous_slice(2)) = 0; alpha_XY(:,self.current_slice(2)) = self.overlay.alpha;
-% 
-%             alpha_XZ(:,self.previous_slice(3)) = 0; alpha_XZ(:,self.current_slice(3)) = self.overlay.alpha;
-%             alpha_XZ(self.previous_slice(1),:) = 0; alpha_XZ(self.current_slice(1),:) = self.overlay.alpha;
-% 
-%             alpha_YZ(:,self.previous_slice(2)) = 0; alpha_YZ(:,self.current_slice(2)) = self.overlay.alpha;
-%             alpha_YZ(self.previous_slice(3),:) = 0; alpha_YZ(self.current_slice(3),:) = self.overlay.alpha;   
-% 
-%             set(self.overlay.XY, 'AlphaData', alpha_XY);
-%             set(self.overlay.XZ, 'AlphaData', alpha_XZ);
-%             set(self.overlay.YZ, 'AlphaData', alpha_YZ);
+        function place_overlay(self)    
+            Nx = self.size(1); Ny = self.size(2); Nz = self.size(3);
+            
+            self.image.overlay.XY.X.XData = [0,Ny];
+            self.image.overlay.XY.X.YData = [self.current_slice(1), self.current_slice(1)];
+            self.image.overlay.XZ.X.XData = [0,Nz];
+            self.image.overlay.XZ.X.YData = [self.current_slice(1), self.current_slice(1)];
+            
+            self.image.overlay.XY.Y.YData = [0,Ny];
+            self.image.overlay.XY.Y.XData = [self.current_slice(2), self.current_slice(2)];
+            self.image.overlay.YZ.Y.YData = [0,Nz];
+            self.image.overlay.YZ.Y.XData = [self.current_slice(2), self.current_slice(2)];
+            
+            self.image.overlay.XZ.Z.YData = [0,Nx];
+            self.image.overlay.XZ.Z.XData = [self.current_slice(3), self.current_slice(3)];
+            self.image.overlay.YZ.Z.XData = [0,Ny];
+            self.image.overlay.YZ.Z.YData = [self.current_slice(3), self.current_slice(3)];
         end
 
         function scroll(self, source, eventdata)
@@ -247,27 +230,63 @@ classdef orthofig < cubefig
             end
 
         end
-
-        function XY_ButtonDownFcn(self, ~, eventdata)         
-            pos = floor(eventdata.IntersectionPoint);
-            
-            set(self.control.X_slider, 'Value', pos(2));
-            set(Y_slider, 'Value', pos(1));
+        
+        function ButtonUpFcn(self, ~, eventdata)
+            self.roaming = false;
+        end
+        
+        function Roam(self, stuff, eventdata)
+            if self.roaming
+                self.figure.CurrentObject.ButtonDownFcn(stuff, eventdata)                              
+            end
         end
 
-        function XZ_ButtonDownFcn(self, ~, eventdata)         
+        function XY_ButtonDownFcn(self, ~, eventdata)    
+            self.roaming = true;
             pos = floor(eventdata.IntersectionPoint);
+
+            if ~any(isnan(pos))
+                self.previous_slice = self.current_slice;
+                self.current_slice(1) = pos(2); self.current_slice(1) = pos(1);
+
+                set(self.control.Y_slider, 'Value', pos(1));
+                set(self.control.X_slider, 'Value', pos(2));
+
+                self.ui_update_images();
+                self.place_overlay();
+            end
+        end
+
+        function XZ_ButtonDownFcn(self, ~, eventdata)     
+            self.roaming = true;
+            pos = floor(eventdata.IntersectionPoint);  
             
-            set(self.control.X_slider, 'Value', pos(2));
-            set(self.control.Z_slider, 'Value', pos(1));
+            if ~any(isnan(pos))
+                self.previous_slice = self.current_slice;
+                self.current_slice(1) = pos(2); self.current_slice(3) = pos(1);
+
+                set(self.control.X_slider, 'Value', pos(2));
+                set(self.control.Z_slider, 'Value', pos(1));
+
+                self.ui_update_images();
+                self.place_overlay();
+            end
         end
 
         function YZ_ButtonDownFcn(self, ~, eventdata)
-
+            self.roaming = true;
             pos = floor(eventdata.IntersectionPoint);
             
-            set(self.control.Y_slider, 'Value', pos(1));
-            set(self.control.Z_slider, 'Value', pos(2));
+            if ~any(isnan(pos))
+                self.previous_slice = self.current_slice;
+                self.current_slice(2) = pos(1); self.current_slice(3) = pos(2);
+
+                set(self.control.Y_slider, 'Value', pos(1));
+                set(self.control.Z_slider, 'Value', pos(2));
+
+                self.ui_update_images();
+                self.place_overlay();
+            end
         end
         
         
