@@ -1,5 +1,5 @@
-function [handle_XY, handle_XZ, handle_YZ, overlay] = imshow_tight_ortho(...
-    image, slice, slice_method, slice_args, M, z, pad)
+function [handle_XY, handle_XZ, handle_YZ, overlay, pad] = imshow_tight_ortho(...
+    image, slice, slice_method, slice_args, M, z_ratio, pad)
 % https://nl.mathworks.com/matlabcentral/answers/100366-how-can-i-remove-the-grey-borders-from-the-imshow-plot-in-matlab-7-4-r2007a
     % pad: [bottom, top, left, right] -> dpos [left edge, bottom edge, width, height]
 
@@ -7,11 +7,11 @@ function [handle_XY, handle_XZ, handle_YZ, overlay] = imshow_tight_ortho(...
     
     switch nargin
         case 4
-            M = 100;
-            z = M;
+            M = 0.3;
+            z_ratio = 1;
             pad = [0,0,0,0] + default_pad;
         case 5
-            z = M;
+            z_ratio = 1;
             pad = [0,0,0,0] + default_pad;
         case 6
             pad = [0 0 0 0] + default_pad;
@@ -29,7 +29,7 @@ function [handle_XY, handle_XZ, handle_YZ, overlay] = imshow_tight_ortho(...
     [Ny,Nx,Nz] = size(image);
     X = Nx*M;
     Y = Ny*M;
-    Z = Nz*M*z;
+    Z = Nz*M*z_ratio;
     
     overlay_color = [52 235 174]/255;
     overlay_alpha = 0.2;
@@ -45,17 +45,17 @@ function [handle_XY, handle_XZ, handle_YZ, overlay] = imshow_tight_ortho(...
     handle_XZ_X = patchline([0,0],[0,0], 'EdgeColor', overlay_color, 'EdgeAlpha', overlay_alpha);
     handle_XZ_Z = patchline([0,0],[0,0], 'EdgeColor', overlay_color, 'EdgeAlpha', overlay_alpha);
     hold on
-    daspect([1,z,1])
+    daspect([1,z_ratio,1])
     set(ax_XZ, 'units', 'pixels')
     ax_YZ = subplot(2,2,3);
     handle_YZ = imshow(YZ, 'InitialMagnification', M);
     handle_YZ_Y = patchline([0,0],[0,0], 'EdgeColor', overlay_color, 'EdgeAlpha', overlay_alpha);
     handle_YZ_Z = patchline([0,0],[0,0], 'EdgeColor', overlay_color, 'EdgeAlpha', overlay_alpha);
     hold on
-    daspect([z,1,1])
+    daspect([z_ratio,1,1])
     set(ax_YZ, 'units', 'pixels')
     
-    set(gcf, 'Position', [50, 50, X+Z, Y+Z] + dfpos);
+    set(gcf, 'Position', [30,30, X+Z, Y+Z] + dfpos);
     set(ax_XY, 'Position', [0,Z+2,X,Y] + dhpos);
     set(ax_XZ, 'Position', [X+2,Z+2,Z,Y] + dhpos);
     set(ax_YZ, 'Position', [0,0,X,Z] + dhpos);  

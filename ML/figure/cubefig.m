@@ -18,7 +18,7 @@ classdef cubefig < handle
         control = struct();
         imagecontrol = struct()
         
-        M = 100;
+        M = 0.3;
     end
     
     methods (Abstract = true)

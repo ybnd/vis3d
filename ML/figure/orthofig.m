@@ -8,27 +8,33 @@ classdef orthofig < cubefig
     properties (Access = private)        
         overlay = struct('alpha', 0.2, 'colormap', [0 0 0; 0 1 0]);
         
-        z = 2;
+        z_ratio = 2;
         pad = [75 0 0 0]
         
         roaming = false;
         size = [0,0,0];
+        
+        border = 5;     % border distance (v,h)
+        w_img = 80;     % image controls width
+        d_img_xyz = 20; % distance between image controls and axis controls
+        w_lab = 40;     % axis control label width
+        w_db = 45;      % width of db button
     end
     
     methods 
-        function self = orthofig(C, fig, M, z, slice_method)
+        function self = orthofig(C, fig, M, z_ratio, slice_method)
             switch nargin
                 case 1
                     fig = figure;
-                    M = 100;
-                    z = 2;
+                    M = 0.3;
+                    z_ratio = 2;
                     slice_method = @slice;
                 case 2
-                    M = 100;
-                    z = 2;
+                    M = [560 420];
+                    z_ratio = 2;
                     slice_method = @slice;
                 case 3
-                    z = 2;
+                    z_ratio = 2;
                     slice_method = @slice;
                 case 4
                     slice_method = @slice;
@@ -44,7 +50,12 @@ classdef orthofig < cubefig
             set(self.figure, 'Resize', 'off');
             
             self.M = M;
-            self.z = z;
+            if ~isnan(z_ratio) && self.z_ratio > 0
+                self.z_ratio = z_ratio;
+            else
+                self.z_ratio = 1;
+            end
+            
             self.slice_method = slice_method;
             
             self.build;
@@ -53,49 +64,47 @@ classdef orthofig < cubefig
         function build(self)
             Nx = self.size(1); Ny = self.size(2); Nz = self.size(3);  
             
-            [self.image.XY, self.image.XZ, self.image.YZ, self.image.overlay] = imshow_tight_ortho( ...
+            [self.image.XY, self.image.XZ, self.image.YZ, self.image.overlay, self.pad] = imshow_tight_ortho( ...
                 self.C, self.current_slice, self.slice_method, self.slice_args, ...
-                self.M, self.z, self.pad ...
+                self.M, self.z_ratio, self.pad ...
             );
         
             aXY = copyobj(self.image.XY.Parent, self.figure); cla(aXY);
             aXZ = copyobj(self.image.XZ.Parent, self.figure); cla(aXZ);
             aYZ = copyobj(self.image.YZ.Parent, self.figure); cla(aYZ);
 
-            ap = get(gca, 'Position');
-            
+            ap = get(aXY, 'Position');
             w_xy = ap(3);   % width of XY image
-            border = 5;     % border distance (v,h)
-            w_img = 80;     % image controls width
-            d_img_xyz = 20; % distance between image controls and axis controls
-            w_lab = 40;     % axis control label width
-            w_db = 45;      % width of db button
+            
 
             self.control.Z_slider = uicontrol('style', 'slider', ...
-                'Position', [border + w_img + d_img_xyz+w_lab,5,w_xy - w_img - d_img_xyz-w_lab,20] ,...
+                'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, ...
+                                5, w_xy - self.w_img - self.d_img_xyz - self.w_lab, 20] ,...
                 'Value', self.current_slice(3), 'min', 1, 'max', Nz, ...
                 'SliderStep', [1/Nz, 1/Nz] ...
                 );
             self.control.Z_text = uicontrol('style', 'text', ...
-                'Position', [border + w_img + d_img_xyz,3,w_lab,20], ...
+                'Position', [self.border + self.w_img + self.d_img_xyz, 3, self.w_lab,20], ...
                 'String', sprintf('z(%d)',self.current_slice(3)));
             addlistener(self.control.Z_slider, 'Value', 'PostSet', @self.Z_slider_callback);
 
             self.control.Y_text = uicontrol('style', 'text', ...
-                'Position', [border + w_img + d_img_xyz,25,w_lab,20], ...
+                'Position', [self.border + self.w_img + self.d_img_xyz, 25, self.w_lab,20], ...
                 'String', sprintf('y(%d)',self.current_slice(2)));
             self.control.Y_slider = uicontrol('style', 'slider', ...
-                'Position', [border + w_img + d_img_xyz+w_lab,27,w_xy - w_img - d_img_xyz-w_lab,20] ,...
+                'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, ...
+                                27, w_xy - self.w_img - self.d_img_xyz - self.w_lab,20] ,...
                 'Value', self.current_slice(2), 'min', 1, 'max', Ny, ...
                 'SliderStep', [1/Ny, 1/Ny] ...
                 );
             addlistener(self.control.Y_slider, 'Value', 'PostSet', @self.Y_slider_callback);
 
             self.control.X_text = uicontrol('style', 'text', ...
-                'Position', [border + w_img + d_img_xyz,47,w_lab,20], ...
+                'Position', [self.border + self.w_img + self.d_img_xyz, 47, self.w_lab, 20], ...
                 'String', sprintf('x(%d)',self.current_slice(1)));
             self.control.X_slider = uicontrol('style', 'slider', ...
-                'Position', [border + w_img + d_img_xyz+w_lab,49,w_xy - w_img - d_img_xyz-w_lab,20] ,...
+                'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, ...
+                                49, w_xy - self.w_img - self.d_img_xyz - self.w_lab,20] ,...
                 'Value', self.current_slice(1), 'min', 1, 'max', Nx, ...
                 'SliderStep', [1/Nx, 1/Nx] ...
                 );
@@ -110,10 +119,10 @@ classdef orthofig < cubefig
             set(self.figure, 'WindowButtonMotionFcn', @self.WindowButtonMotionFcn);
 
             positions = struct(                                                 ...
-                'ui_colormap', [border, 58, w_img, 12],                         ...
-                'ui_db', [border-1, border+20, w_db, 22],                          ...
-                'ui_db_floor', [border+w_db, border, w_img-w_db-1,20],    ...
-                'ui_db_ceil', [border+w_db, border+1+20, w_img-w_db-1, 20]    ...
+                'ui_colormap', [self.border, 58, self.w_img, 12],                         ...
+                'ui_db', [self.border-1, self.border+20, self.w_db, 22],                          ...
+                'ui_db_floor', [self.border + self.w_db, self.border, self.w_img - self.w_db-1,20],    ...
+                'ui_db_ceil', [self.border+self.w_db, self.border+1+20, self.w_img-self.w_db-1, 20]    ...
             );
             images = [self.image.XY.Parent, self.image.XZ.Parent, self.image.YZ.Parent];
         
@@ -121,25 +130,7 @@ classdef orthofig < cubefig
             
             self.ui_update_images;
             set(self.figure, 'visible', 'on')
-        end
-        
-        
-%         function magnify(self, M, z) % todo: would require re-drawing of imshow axes?
-%             p = self.pad + [5 5 5 5];
-%             dfpos = [0 0 p(3)+p(4) p(1)+p(2)];
-%             dhpos = [p(3) p(1) 0 0];
-%             
-%             [Ny,Nx,Nz] = size(self.C);
-%             X = Nx*M/100.0;
-%             Y = Ny*M/100.0;
-%             Z = Nz*M*z/100.0;
-% 
-%             set(gcf, 'Position', [50, 50, X+Z, Y+Z] + dfpos);
-%             set(self.image.XY.Parent, 'Position', [0,Z+2,X,Y] + dhpos);
-%             set(self.image.XZ.Parent, 'Position', [X+2,Z+2,Z,Y] + dhpos);
-%             set(self.image.YZ.Parent, 'Position', [0,0,X,Z] + dhpos);
-%         end
-    
+        end    
     
     %% Callbacks
 
@@ -217,10 +208,36 @@ classdef orthofig < cubefig
                     if new_value <= get(self.control.X_slider, 'max') && new_value >= get(self.control.X_slider, 'min')
                         set(self.control.X_slider, 'Value', new_value);
                     end
-                case 'control'
+                case 'alt'
                     new_value = get(self.control.Y_slider, 'Value') - 1 * eventdata.VerticalScrollCount*10;
                     if new_value <= get(self.control.Y_slider, 'max') && new_value >= get(self.control.Y_slider, 'min')
                         set(self.control.Y_slider, 'Value', new_value);
+                    end
+                case 'control'
+                    new_value = self.M * (1 - 0.1*eventdata.VerticalScrollCount);
+                    Nx = self.size(1); Ny = self.size(2); Nz = self.size(3);
+                    
+                    if any([Nx,Ny] * new_value < monitor_resolution * 0.5) && any([Nx,Ny] * new_value > monitor_resolution * 0.25)
+                        self.M = new_value;
+
+                        dfpos = [0 0 self.pad(3)+self.pad(4) self.pad(1)+self.pad(2)];
+                        dhpos = [self.pad(3) self.pad(1) 0 0];
+
+                        X = Ny*self.M; % Notice: X and Y switched (!!!)
+                        Y = Nx*self.M;
+                        Z = Nz*self.M*self.z_ratio;
+
+                        set(self.figure, 'Position', [self.figure.Position(1), self.figure.Position(2), X+Z, Y+Z] + dfpos);
+                        set(self.image.XY.Parent, 'Position', [0,Z+2,X,Y] + dhpos);
+                        set(self.image.XZ.Parent, 'Position', [X+2,Z+2,Z,Y] + dhpos);
+                        set(self.image.YZ.Parent, 'Position', [0,0,X,Z] + dhpos);  
+                        
+                        ap = get(self.image.XY.Parent, 'Position');
+                        w_xy = ap(3);   % width of XY image
+                        
+                        set(self.control.Z_slider, 'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, 5, w_xy - self.w_img - self.d_img_xyz - self.w_lab, 20])
+                        set(self.control.Y_slider, 'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, 27, w_xy - self.w_img - self.d_img_xyz - self.w_lab,20])
+                        set(self.control.X_slider, 'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, 49, w_xy - self.w_img - self.d_img_xyz - self.w_lab,20])
                     end
                 otherwise
                     new_value = get(self.control.Z_slider, 'Value') - 1 * eventdata.VerticalScrollCount;
