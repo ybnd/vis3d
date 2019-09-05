@@ -1,4 +1,6 @@
 function I = slice(C,s,axis,~)
+assert(isa('axis','char'));
+
     switch lower(axis)
         case 'x'
             I = permute(C(s,:,:), [3,2,1]);

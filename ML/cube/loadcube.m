@@ -1,5 +1,6 @@
 function C = loadcube(varargin)
-    path = varargin{1};
+    % Cast path to char
+    path = char(varargin{1});
 
     CubeClass = @Cube;
 

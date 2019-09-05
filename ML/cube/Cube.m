@@ -139,7 +139,8 @@ File format & i/o:
                     do_load = true;
             end
 
-            self.path = path;
+            % Cast path to char
+            self.path = char(path);
             
             [~, sys] = memory;            
             self.memory_limit = b2gb(sys.PhysicalMemory.Available * 0.75); 

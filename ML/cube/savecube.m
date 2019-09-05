@@ -18,6 +18,9 @@ function savecube(C, path, process_method)
         end
         path = fullfile(folder, path);
     end
+    
+    % Cast path to char
+    path = char(path);
 
     switch getExtension(path)
         case {'.bin', ''}
