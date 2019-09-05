@@ -106,8 +106,8 @@ classdef orthofig < cubefig
             set(self.image.XY, 'ButtonDownFcn', @self.XY_ButtonDownFcn);
             set(self.image.XZ, 'ButtonDownFcn', @self.XZ_ButtonDownFcn);
             set(self.image.YZ, 'ButtonDownFcn', @self.YZ_ButtonDownFcn);
-            set(self.figure, 'WindowButtonUpFcn', @self.ButtonUpFcn);
-            set(self.figure, 'WindowButtonMotionFcn', @self.Roam);
+            set(self.figure, 'WindowButtonUpFcn', @self.WindowButtonUpFcn);
+            set(self.figure, 'WindowButtonMotionFcn', @self.WindowButtonMotionFcn);
 
             positions = struct(                                                 ...
                 'ui_colormap', [border, 58, w_img, 12],                         ...
@@ -231,11 +231,11 @@ classdef orthofig < cubefig
 
         end
         
-        function ButtonUpFcn(self, ~, eventdata)
+        function WindowButtonUpFcn(self, ~, ~)
             self.roaming = false;
         end
         
-        function Roam(self, stuff, eventdata)
+        function WindowButtonMotionFcn(self, stuff, eventdata)
             if self.roaming
                 self.figure.CurrentObject.ButtonDownFcn(stuff, eventdata)                              
             end
@@ -245,15 +245,18 @@ classdef orthofig < cubefig
             self.roaming = true;
             pos = floor(eventdata.IntersectionPoint);
 
-            if ~any(isnan(pos)) && 1 <= pos(2) <= self.size(1) && 1 <= pos(1) <= self.size(2)
+            if ~any(isnan(pos)) && 1 < pos(2) < self.size(1) && 1 < pos(1) < self.size(2)
                 self.previous_slice = self.current_slice;
                 self.current_slice(1) = pos(2); self.current_slice(1) = pos(1);
+                try
+                    set(self.control.Y_slider, 'Value', pos(1));
+                    set(self.control.X_slider, 'Value', pos(2));
 
-                set(self.control.Y_slider, 'Value', pos(1));
-                set(self.control.X_slider, 'Value', pos(2));
-
-                self.ui_update_images();
-                self.place_overlay();
+                    self.ui_update_images();
+                    self.place_overlay();
+                catch err
+                   pass
+                end
             end
         end
 
@@ -261,15 +264,18 @@ classdef orthofig < cubefig
             self.roaming = true;
             pos = floor(eventdata.IntersectionPoint);  
             
-            if ~any(isnan(pos))  && 1 <= pos(2) <= self.size(1) && 1 <= pos(1) <= self.size(3)
+            if ~any(isnan(pos))  && 1 < pos(2) < self.size(1) && 1 < pos(1) < self.size(3)
                 self.previous_slice = self.current_slice;
                 self.current_slice(1) = pos(2); self.current_slice(3) = pos(1);
+                try
+                    set(self.control.X_slider, 'Value', pos(2));
+                    set(self.control.Z_slider, 'Value', pos(1));
 
-                set(self.control.X_slider, 'Value', pos(2));
-                set(self.control.Z_slider, 'Value', pos(1));
-
-                self.ui_update_images();
-                self.place_overlay();
+                    self.ui_update_images();
+                    self.place_overlay();
+                catch err
+                    pass
+                end
             end
         end
 
@@ -277,15 +283,18 @@ classdef orthofig < cubefig
             self.roaming = true;
             pos = floor(eventdata.IntersectionPoint);
             
-            if ~any(isnan(pos))  && 1 <= pos(2) <= self.size(3) && 1 <= pos(1) <= self.size(2)
+            if ~any(isnan(pos))  && 1 < pos(2) < self.size(3) && 1 < pos(1) < self.size(2)
                 self.previous_slice = self.current_slice;
                 self.current_slice(2) = pos(1); self.current_slice(3) = pos(2);
+                try
+                    set(self.control.Y_slider, 'Value', pos(1));
+                    set(self.control.Z_slider, 'Value', pos(2));
 
-                set(self.control.Y_slider, 'Value', pos(1));
-                set(self.control.Z_slider, 'Value', pos(2));
-
-                self.ui_update_images();
-                self.place_overlay();
+                    self.ui_update_images();
+                    self.place_overlay();
+                catch err
+                    pass
+                end
             end
         end
         
