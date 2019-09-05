@@ -245,7 +245,7 @@ classdef orthofig < cubefig
             self.roaming = true;
             pos = floor(eventdata.IntersectionPoint);
 
-            if ~any(isnan(pos))
+            if ~any(isnan(pos)) && 1 <= pos(2) <= self.size(1) && 1 <= pos(1) <= self.size(2)
                 self.previous_slice = self.current_slice;
                 self.current_slice(1) = pos(2); self.current_slice(1) = pos(1);
 
@@ -261,7 +261,7 @@ classdef orthofig < cubefig
             self.roaming = true;
             pos = floor(eventdata.IntersectionPoint);  
             
-            if ~any(isnan(pos))
+            if ~any(isnan(pos))  && 1 <= pos(2) <= self.size(1) && 1 <= pos(1) <= self.size(3)
                 self.previous_slice = self.current_slice;
                 self.current_slice(1) = pos(2); self.current_slice(3) = pos(1);
 
@@ -277,7 +277,7 @@ classdef orthofig < cubefig
             self.roaming = true;
             pos = floor(eventdata.IntersectionPoint);
             
-            if ~any(isnan(pos))
+            if ~any(isnan(pos))  && 1 <= pos(2) <= self.size(3) && 1 <= pos(1) <= self.size(2)
                 self.previous_slice = self.current_slice;
                 self.current_slice(2) = pos(1); self.current_slice(3) = pos(2);
 
