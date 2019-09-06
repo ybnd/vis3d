@@ -35,18 +35,18 @@ function I = blend_slice(C, slice, axis, args)
         
         switch lower(axis)
             case 'x'
-                subC = double(C(blend,:,:)) .* repmat(window(blend > 0),[1,Ny,Nz]);
+                subC = single(C(blend,:,:)) .* repmat(window(blend > 0),[1,Ny,Nz]);
                 subC = permute(subC, [3,2,1]);
             case 'y'
-                subC = double(C(:,blend,:)) .* repmat(window(blend > 0),[Nx,1,Nz]);
+                subC = single(C(:,blend,:)) .* repmat(window(blend > 0),[Nx,1,Nz]);
                 subC = permute(subC, [1,3,2]);
             otherwise
-                subC = double(C(:,:,blend)) .* repmat(permute(window(blend > 0),[3,2,1]),[Nx,Ny,1]);                
+                subC = single(C(:,:,blend)) .* repmat(permute(window(blend > 0),[3,2,1]),[Nx,Ny,1]);                
         end
         
         norm_subC = zeros(size(subC));
         for b = 1:length(blend)
-            norm_subC(:,:,b) = rescale(double(subC(:,:,b)));
+            norm_subC(:,:,b) = rescale(single(subC(:,:,b)));
         end
 
         I = sum(norm_subC,3);         

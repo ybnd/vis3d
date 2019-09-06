@@ -77,7 +77,7 @@ File format & i/o:
                                 id = 'cube';
                                 data_i = self.cube;
                             else
-                                id = sprintf('data%s', num2str(i-1));  % i.e. cube is dataset 0;
+                                id = sprintf('data%s', num2str(i-2));  % i.e. cube is dataset 0;
                                 data_i = self.data.(dataspec{i}.name);
                             end
 
@@ -210,18 +210,27 @@ File format & i/o:
             plane = normalize2(self.cube(:,:,k));
         end
         
-        function sf = slice(self, plane, M, method)
+        function sf = slice(self, plane, M, method, args, f)
             % Slice display (scroll to scan through the cube)
             switch nargin
                 case 1
                     plane = 'XY';
                     M = 100;
                     method = @normalize_slice;
+                    args = struct();
+                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
+                    self.figures = [self.figures, f];
                 case 2
                     M = 100;
                     method = @normalize_slice;
+                    args = struct();
+                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
+                    self.figures = [self.figures, f];
                 case 3
                     method = @normalize_slice;
+                    args = struct();
+                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
+                    self.figures = [self.figures, f];
             end
             
             switch lower(plane)
@@ -236,10 +245,9 @@ File format & i/o:
                     plane = 'XY';
             end
 
-            f = figure('Name', sprintf('%s (%s)', self.name, plane));
-            self.figures = [self.figures, f];
             
-            sf = slicefig(slice_cube, f, method, struct(), M); % todo: should have same contrast stuff as ortho...
+            
+            sf = slicefig(slice_cube, f, method, args, M); % todo: should have same contrast stuff as ortho...
         end
         
         function of = ortho(self, M, z, slice_method)

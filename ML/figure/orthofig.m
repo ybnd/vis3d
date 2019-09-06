@@ -5,20 +5,22 @@ classdef orthofig < cubefig
         previous_slice = [1,1,1];   
     end
     
-    properties (Access = private)        
-        overlay = struct('alpha', 0.2, 'colormap', [0 0 0; 0 1 0]);
-        
+    properties (Access = private)                
         z_ratio = 2;
         pad = [75 0 0 0]
         
         roaming = false;
-        size = [0,0,0];
+        
         
         border = 5;     % border distance (v,h)
         w_img = 80;     % image controls width
         d_img_xyz = 20; % distance between image controls and axis controls
         w_lab = 40;     % axis control label width
         w_db = 45;      % width of db button
+        
+        histograms = struct('bins', 200);
+        show_histograms = false;
+        ui_histograms;
     end
     
     methods 
@@ -43,11 +45,7 @@ classdef orthofig < cubefig
             self.C = C;
             self.size = size(C);
             
-            self.figure = fig; 
-            set(self.figure, 'visible', 'off');
-            set(self.figure, 'UserData', self);
-            set(self.figure, 'MenuBar', 'none');
-            set(self.figure, 'Resize', 'off');
+            self.f = fig; 
             
             self.M = M;
             if ~isnan(z_ratio) && self.z_ratio > 0
@@ -62,6 +60,8 @@ classdef orthofig < cubefig
         end
         
         function build(self)
+            build@cubefig(self);
+            
             Nx = self.size(1); Ny = self.size(2); Nz = self.size(3);  
             
             [self.image.XY, self.image.XZ, self.image.YZ, self.image.overlay, self.pad] = imshow_tight_ortho( ...
@@ -69,9 +69,9 @@ classdef orthofig < cubefig
                 self.M, self.z_ratio, self.pad ...
             );
         
-            aXY = copyobj(self.image.XY.Parent, self.figure); cla(aXY);
-            aXZ = copyobj(self.image.XZ.Parent, self.figure); cla(aXZ);
-            aYZ = copyobj(self.image.YZ.Parent, self.figure); cla(aYZ);
+            aXY = copyobj(self.image.XY.Parent, self.f); cla(aXY);
+            aXZ = copyobj(self.image.XZ.Parent, self.f); cla(aXZ);
+            aYZ = copyobj(self.image.YZ.Parent, self.f); cla(aYZ);
 
             ap = get(aXY, 'Position');
             w_xy = ap(3);   % width of XY image
@@ -110,17 +110,17 @@ classdef orthofig < cubefig
                 );
             addlistener(self.control.X_slider, 'Value', 'PostSet', @self.X_slider_callback);
 
-            set(self.figure, 'WindowScrollWheelFcn', @self.scroll);
+            set(self.f, 'WindowScrollWheelFcn', @self.scroll);
 
             set(self.image.XY, 'ButtonDownFcn', @self.XY_ButtonDownFcn);
             set(self.image.XZ, 'ButtonDownFcn', @self.XZ_ButtonDownFcn);
             set(self.image.YZ, 'ButtonDownFcn', @self.YZ_ButtonDownFcn);
-            set(self.figure, 'WindowButtonUpFcn', @self.WindowButtonUpFcn);
-            set(self.figure, 'WindowButtonMotionFcn', @self.WindowButtonMotionFcn);
+            set(self.f, 'WindowButtonUpFcn', @self.WindowButtonUpFcn);
+            set(self.f, 'WindowButtonMotionFcn', @self.WindowButtonMotionFcn);
 
             positions = struct(                                                 ...
-                'ui_colormap', [self.border, 58, self.w_img, 12],                         ...
-                'ui_db', [self.border-1, self.border+20, self.w_db, 22],                          ...
+                'ui_slice_method', [self.border, 58, self.w_img, 12],                         ...
+                'ui_db', [self.border-1, self.border+20, self.w_db, 20],                          ...
                 'ui_db_floor', [self.border + self.w_db, self.border, self.w_img - self.w_db-1,20],    ...
                 'ui_db_ceil', [self.border+self.w_db, self.border+1+20, self.w_img-self.w_db-1, 20]    ...
             );
@@ -128,11 +128,31 @@ classdef orthofig < cubefig
         
             self.imagecontrol = postprocon(self, positions, @self.ui_update_images, images);
             
+            dfpos = [0 0 self.pad(3)+self.pad(4) self.pad(1)+self.pad(2)];
+            dhpos = [self.pad(3) self.pad(1) 0 0];
+
+            X = Ny*self.M; % Notice: X and Y switched (!!!)
+            Y = Nx*self.M;
+            Z = Nz*self.M*self.z_ratio;
+
+            set(self.f, 'Position', [self.f.Position(1), self.f.Position(2), X+Z, Y+Z] + dfpos);
+            set(self.image.XY.Parent, 'Position', [0,Z+2,X,Y] + dhpos);
+            set(self.image.XZ.Parent, 'Position', [X+2,Z+2,Z,Y] + dhpos);
+            set(self.image.YZ.Parent, 'Position', [0,0,X,Z] + dhpos);  
+            
+            self.ui_histograms = uicontrol('Style', 'togglebutton', 'String', 'Histo', ...
+                'Position', [positions.ui_db(1), self.border, positions.ui_db(3), positions.ui_db(4)], ...
+                'Value', self.show_histograms, 'callback', @self.ui_toggle_histograms);
+            
             self.ui_update_images;
-            set(self.figure, 'visible', 'on')
+            self.place_overlay;
+            self.ui_update_histograms;
+            set(self.f, 'visible', 'on')
         end    
     
     %% Callbacks
+    
+            
 
         function Z_slider_callback(self, ~, eventdata)            
             self.previous_slice = self.current_slice;
@@ -140,13 +160,17 @@ classdef orthofig < cubefig
             self.current_slice(3) = new_Z_slice;
             self.control.Z_text.String = sprintf('z(%d)',new_Z_slice);
             
+            self.image.temp.XY = self.slice_method(self.C,self.current_slice(3),'z',self.slice_args);           
+            
             if self.do_db
-                self.image.XY.set('CData', dBs(self.slice_method(self.C,new_Z_slice,'z',self.slice_args),self.noise_floor, self.signal_ceil));
+                self.image.temp.XY = dBs(self.image.temp.XY, self.noise_floor, self.signal_ceil);
+                self.image.XY.set('CData', rescale(self.image.temp.XY));
             else
-                self.image.XY.set('CData', self.slice_method(self.C,new_Z_slice, 'z',self.slice_args));
+                self.image.XY.set('CData', self.image.temp.XY);
             end
 
             self.place_overlay;
+            self.ui_update_histograms;
         end
 
         function Y_slider_callback(self, ~, eventdata)
@@ -155,13 +179,17 @@ classdef orthofig < cubefig
             self.current_slice(2) = new_Y_slice;
             self.control.Y_text.String = sprintf('y(%d)',new_Y_slice);
             
+            self.image.temp.XZ = self.slice_method(self.C,self.current_slice(2),'y',self.slice_args);         
+            
             if self.do_db
-                self.image.XZ.set('CData', dBs(self.slice_method(self.C,new_Y_slice,'y',self.slice_args),self.noise_floor, self.signal_ceil));
+                self.image.temp.XZ = dBs(self.image.temp.XZ, self.noise_floor, self.signal_ceil);
+                self.image.XZ.set('CData', rescale(self.image.temp.XZ)); 
             else
-                self.image.XZ.set('CData', self.slice_method(self.C,new_Y_slice,'y',self.slice_args));
+                self.image.XZ.set('CData', self.image.temp.XZ);
             end
             
             self.place_overlay;
+            self.ui_update_histograms;
         end
 
         function X_slider_callback(self, ~, eventdata)
@@ -170,13 +198,17 @@ classdef orthofig < cubefig
             self.current_slice(1) = new_X_slice;
             self.control.X_text.String = sprintf('x(%d)', new_X_slice);
             
+            self.image.temp.YZ = self.slice_method(self.C,self.current_slice(1),'x',self.slice_args);            
+            
             if self.do_db
-                self.image.YZ.set('CData', dBs(self.slice_method(self.C,new_X_slice,'x',self.slice_args), self.noise_floor, self.signal_ceil));
+                self.image.temp.YZ = dBs(self.image.temp.YZ, self.noise_floor, self.signal_ceil);   
+                self.image.YZ.set('CData', rescale(self.image.temp.YZ));  
             else
-                self.image.YZ.set('CData', self.slice_method(self.C,new_X_slice,'x',self.slice_args));
+                self.image.YZ.set('CData', self.image.temp.YZ);
             end
 
-            self.place_overlay;        
+            self.place_overlay;
+            self.ui_update_histograms;
         end
 
         function place_overlay(self)    
@@ -214,7 +246,7 @@ classdef orthofig < cubefig
                         set(self.control.Y_slider, 'Value', new_value);
                     end
                 case 'control'
-                    new_value = self.M * (1 - 0.1*eventdata.VerticalScrollCount);
+                    new_value = self.M * (1 - 0.05*eventdata.VerticalScrollCount);
                     Nx = self.size(1); Ny = self.size(2); Nz = self.size(3);
                     
                     if any([Nx,Ny] * new_value < monitor_resolution * 0.5) && any([Nx,Ny] * new_value > monitor_resolution * 0.25)
@@ -227,7 +259,7 @@ classdef orthofig < cubefig
                         Y = Nx*self.M;
                         Z = Nz*self.M*self.z_ratio;
 
-                        set(self.figure, 'Position', [self.figure.Position(1), self.figure.Position(2), X+Z, Y+Z] + dfpos);
+                        set(self.f, 'Position', [self.f.Position(1), self.f.Position(2), X+Z, Y+Z] + dfpos);
                         set(self.image.XY.Parent, 'Position', [0,Z+2,X,Y] + dhpos);
                         set(self.image.XZ.Parent, 'Position', [X+2,Z+2,Z,Y] + dhpos);
                         set(self.image.YZ.Parent, 'Position', [0,0,X,Z] + dhpos);  
@@ -238,6 +270,7 @@ classdef orthofig < cubefig
                         set(self.control.Z_slider, 'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, 5, w_xy - self.w_img - self.d_img_xyz - self.w_lab, 20])
                         set(self.control.Y_slider, 'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, 27, w_xy - self.w_img - self.d_img_xyz - self.w_lab,20])
                         set(self.control.X_slider, 'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, 49, w_xy - self.w_img - self.d_img_xyz - self.w_lab,20])
+                        self.ui_update_histograms
                     end
                 otherwise
                     new_value = get(self.control.Z_slider, 'Value') - 1 * eventdata.VerticalScrollCount;
@@ -254,7 +287,7 @@ classdef orthofig < cubefig
         
         function WindowButtonMotionFcn(self, stuff, eventdata)
             if self.roaming
-                self.figure.CurrentObject.ButtonDownFcn(stuff, eventdata)                              
+                self.f.CurrentObject.ButtonDownFcn(stuff, eventdata)                              
             end
         end
 
@@ -269,8 +302,7 @@ classdef orthofig < cubefig
                     set(self.control.Y_slider, 'Value', pos(1));
                     set(self.control.X_slider, 'Value', pos(2));
 
-                    self.ui_update_images();
-                    self.place_overlay();
+                    self.update()
                 catch err
                    pass
                 end
@@ -288,8 +320,7 @@ classdef orthofig < cubefig
                     set(self.control.X_slider, 'Value', pos(2));
                     set(self.control.Z_slider, 'Value', pos(1));
 
-                    self.ui_update_images();
-                    self.place_overlay();
+                    self.update();
                 catch err
                     pass
                 end
@@ -307,28 +338,114 @@ classdef orthofig < cubefig
                     set(self.control.Y_slider, 'Value', pos(1));
                     set(self.control.Z_slider, 'Value', pos(2));
 
-                    self.ui_update_images();
-                    self.place_overlay();
+                    self.update();
                 catch err
                     pass
                 end
             end
         end
         
-        
+        function ui_toggle_histograms(self, ~, eventdata)
+            
+            self.show_histograms = eventdata.Source.Value;
+            if any(strcmp(fieldnames(self.histograms), 'axes'))
+                for axis = [self.histograms.axes.XY, self.histograms.axes.XZ, self.histograms.axes.YZ]
+                    set(axis, 'Visible', self.show_histograms);
+                    set(get(axis, 'Children'), 'Visible', self.show_histograms);
+                end
+            end
+            
+            if self.show_histograms
+               self.ui_update_histograms 
+            end 
+        end        
     end
     
     methods(Access = public)
+        function update(self)
+            update@cubefig(self)
+            self.ui_update_images
+            self.ui_update_histograms
+            self.place_overlay
+        end
+        
         function ui_update_images(self)
+            self.image.temp.XY = self.slice_method(self.C,self.current_slice(3),'z',self.slice_args);
+            self.image.temp.XZ = self.slice_method(self.C,self.current_slice(2),'y',self.slice_args);
+            self.image.temp.YZ = self.slice_method(self.C,self.current_slice(1),'x',self.slice_args);            
+            
             if self.do_db
-                self.image.XY.set('CData', dBs(self.slice_method(self.C,self.current_slice(3),'z',self.slice_args), self.noise_floor, self.signal_ceil));
-                self.image.XZ.set('CData', dBs(self.slice_method(self.C,self.current_slice(2),'y',self.slice_args), self.noise_floor, self.signal_ceil));
-                self.image.YZ.set('CData', dBs(self.slice_method(self.C,self.current_slice(1),'x',self.slice_args), self.noise_floor, self.signal_ceil));  
+                self.image.temp.XY = dBs(self.image.temp.XY, self.noise_floor, self.signal_ceil);
+                self.image.temp.XZ = dBs(self.image.temp.XZ, self.noise_floor, self.signal_ceil);
+                self.image.temp.YZ = dBs(self.image.temp.YZ, self.noise_floor, self.signal_ceil);   
+                self.image.XY.set('CData', rescale(self.image.temp.XY));
+                self.image.XZ.set('CData', rescale(self.image.temp.XZ));
+                self.image.YZ.set('CData', rescale(self.image.temp.YZ));  
             else
-                self.image.XY.set('CData', self.slice_method(self.C,self.current_slice(3),'z',self.slice_args));
-                self.image.XZ.set('CData', self.slice_method(self.C,self.current_slice(2),'y',self.slice_args));
-                self.image.YZ.set('CData', self.slice_method(self.C,self.current_slice(1),'x',self.slice_args));
+                self.image.XY.set('CData', self.image.temp.XY);
+                self.image.XZ.set('CData', self.image.temp.XZ);
+                self.image.YZ.set('CData', self.image.temp.YZ);
             end
         end    
+        
+        function ui_update_histograms(self)            
+            if self.show_histograms
+                % Don't do global histogram: takes too long, but parallel pool takes even longer to start up :)                    
+                if ~any(strcmp(fieldnames(self.histograms), 'axes'))
+                    
+
+                    self.histograms.axes.YZ = axes(self.f);       
+                    self.histograms.axes.XZ = axes(self.f);       
+                    self.histograms.axes.XY = axes(self.f);
+                     
+                    self.histograms.xscale = [rmin(self.C), rmax(self.C)];
+                end
+                
+                % Only need to do this when building or rescaling
+                posXZ = self.image.XZ.Parent.Position;
+                    posYZ = self.image.YZ.Parent.Position;
+                    
+                dh = 12;
+                w0 = posXZ(1); h0 = posYZ(2)+dh; w = posXZ(3); h = (posYZ(4) - 4 - dh)/3; % 2px gap between axes
+                setpixelposition(self.histograms.axes.YZ, [w0, h0, w, h]);
+                setpixelposition(self.histograms.axes.XZ, [w0, h0+2+h, w, h]);
+                setpixelposition(self.histograms.axes.XY, [w0, h0+2+h+2+h, w, h]);
+                
+                if self.do_db
+                   xscale = 10*log10(self.histograms.xscale-min(self.histograms.xscale)+1); 
+                else
+                   xscale = self.histograms.xscale;
+                end
+
+                axes(self.histograms.axes.XY);
+                self.histograms.XY = histogram(self.image.temp.XY, self.histograms.bins, ...
+                    'LineStyle', 'none', 'FaceColor', 'k');
+                set(gca, 'YScale', 'Log');
+                set(gca, 'YTick', []);
+                set(gca, 'YLabel', []);
+                set(gca, 'XTick', []);
+                set(gca, 'XLabel', []);
+                xlim(xscale);
+
+                axes(self.histograms.axes.XZ);
+                self.histograms.XZ = histogram(self.image.temp.XZ, self.histograms.bins, ...
+                    'LineStyle', 'none', 'FaceColor', 'k');
+                set(gca, 'YScale', 'Log');
+                set(gca, 'YTick', []);
+                set(gca, 'YLabel', []);
+                set(gca, 'XTick', []);
+                set(gca, 'XLabel', []);
+                xlim(xscale);
+
+                axes(self.histograms.axes.YZ);
+                self.histograms.YZ = histogram(self.image.temp.YZ, self.histograms.bins, ...
+                    'LineStyle', 'none', 'FaceColor', 'k');
+                set(gca, 'YScale', 'Log');
+                set(gca, 'YTick', []);
+                set(gca, 'YLabel', []);
+                xlim(xscale);
+            end
+        end
     end
 end
+

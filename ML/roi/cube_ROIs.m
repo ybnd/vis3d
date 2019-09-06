@@ -12,7 +12,7 @@ classdef cube_ROIs < handle
         ROIs = {};
         MinPeakProminence = 0.1;
         
-        slice_method = @blend_slice;
+        slice_method = @normalize_slice;
         slice_args = struct('blendN', 7, 'window', @gausswin, 'windowpar', 2);
         
         filepath
@@ -28,7 +28,7 @@ classdef cube_ROIs < handle
             self.M = 100;
             
             if isa(self.I, 'thorCube')
-               self.slice_method = @normalize_slice;  % Don't blend Thorlabs OCT slices
+               self.slice_method = @slice;  % Don't blend Thorlabs OCT slices
             end
             
             self.z = self.I.position;
@@ -45,8 +45,9 @@ classdef cube_ROIs < handle
         
         function enough = select_roi(self, M)   
             if ~ishandle(self.axis_image)
-                self.sf = slicefig(self.I.cube, self.fig, self.slice_method, self.slice_args, M); 
+%                 self.sf = slicefig(self.I.cube, self.fig, self.slice_method, self.slice_args, M); 
                     % todo: should be in it's own preparation method
+                self.sf = self.I.slice('XY', M, self.slice_method, self.slice_args, self.fig);
                 self.axis_image = self.sf.get_XY_axis;
             else
                 self.axis_image = self.sf.get_XY_axis;
@@ -109,7 +110,10 @@ classdef cube_ROIs < handle
                     M = 100;
             end
             
-            self.I.load_data
+            if isempty(self.I.cube)
+                self.I.load_data
+            end
+            
             enough = false;
             
             if ~ishandle(self.fig)

@@ -29,11 +29,7 @@ classdef slicefig < cubefig
             self.C = C;
             self.M = M;
             
-            self.figure = fig;
-            set(self.figure, 'visible', 'off');
-            set(self.figure, 'UserData', self);
-            set(self.figure, 'MenuBar', 'none');
-            set(self.figure, 'Resize', 'off');
+            self.f = fig;
             
             self.slice_method = slice_method;
             self.slice_args = slice_args;
@@ -41,7 +37,9 @@ classdef slicefig < cubefig
             self = self.build;
         end
         
-        function self = build(self)
+        function self = build(self)            
+            build@cubefig(self);
+            
             % Image display
             if isempty(fields(self.image))
                 self.image.XY = imshow_tight(                                       ...
@@ -49,8 +47,8 @@ classdef slicefig < cubefig
                     self.M, self.pad                                                ...
                 );
 
-%                 aXY = copyobj(self.image.XY.Parent, self.figure); cla(aXY);
-%                 set(self.figure, 'CurrentAxes', aXY); 
+%                 aXY = copyobj(self.image.XY.Parent, self.f); cla(aXY);
+%                 set(self.f, 'CurrentAxes', aXY); 
 %                 aXY.DataAspectRatio = self.image.XY.Parent.DataAspectRatio;
 
                 [~,~,Nz] = size(self.C);
@@ -68,9 +66,9 @@ classdef slicefig < cubefig
                 );
                 addlistener(self.control.ui_slider, 'Value', 'PostSet', @self.slider_callback);
 
-                set(self.figure, 'WindowScrollWheelFcn', @self.scroll_callback);
+                set(self.f, 'WindowScrollWheelFcn', @self.scroll_callback);
                 
-                set(self.figure, 'visible', 'on')
+                set(self.f, 'visible', 'on')
             end
         
             % Image postprocessing controls

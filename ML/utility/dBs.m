@@ -16,7 +16,7 @@ function [out] = dBs(in, floor, ceil)
        in = double(in);
     end
    
-    out = 10 * log10(in+1);
+    out = 10 * log10(in-rmin(in)+1);
     
     if floor
         out(out < floor) = floor;
@@ -26,5 +26,5 @@ function [out] = dBs(in, floor, ceil)
         out(out > ceil) = ceil;
     end
     
-    out = rescale(out);
+%     out = rescale(out);
 end

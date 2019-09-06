@@ -1,11 +1,10 @@
 classdef cubefig < handle
 	properties
         C
+        size = [0,0,0];
        
-        figure = false;
-        contrast_method = @pass_data;
+        f = false;
         slice_method = @slice;
-        contrast_args = struct();
         slice_args = struct();
 
         do_db = true;
@@ -21,14 +20,42 @@ classdef cubefig < handle
         M = 0.3;
     end
     
-    methods (Abstract = true)
-        build(self);
+    properties (Access = private)
+        
     end
     
-    methods
+    methods (Abstract = true)
+        
+    end
+    
+    methods (Access = public)
+        function open(self)
+            if ishandle(self.f)
+                figure(self.f.Number)
+            else
+                self.f = figure;
+                self.build
+            end            
+        end
+        
+        function build(self)
+            if ~ishandle(self.f)
+               self.f = figure; 
+            end
+            
+            set(self.f, 'visible', 'off');
+            set(self.f, 'UserData', self);
+            set(self.f, 'MenuBar', 'none');
+            set(self.f, 'Resize', 'off');
+        end
+        
+        function update(self)
+            
+        end
+        
         function close(self)
-            close(self.figure);
-            self.figure = false;
+            close(self.f);
+            self.f = false;
         end
     end
 end
