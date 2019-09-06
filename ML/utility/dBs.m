@@ -6,10 +6,10 @@ function [out] = dBs(in, floor, ceil)
 
     switch nargin
         case 1
-            ceil = 0;
-            floor = 0;
+            ceil = false;
+            floor = false;
         case 2
-            ceil = 0;
+            ceil = false;
     end
     
     if ~isfloat(in)
