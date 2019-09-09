@@ -8,6 +8,7 @@ Description:
     - Additional data in self.data
         * self.data.zpos                physical position of each cube in the stack
                                             does not take into account the units; this is up to you & common sense
+        * ...
     - Optional metadata in self.meta
 
 
@@ -31,9 +32,10 @@ File format & i/o:
     properties(Hidden = true)
         filesize                                                    % size of file in bytes
         filesize_gb                                                 % size of file in GB
-        memory_limit                                                % size limit for loading files into RAM
         figures = [];
         is_loaded = false
+        mfmt = 'ieee-le';
+        minsize = 640 * 480;                                        % everything smaller than a VGA image -> save in .json
     end
     
     methods(Access = public)
@@ -72,8 +74,8 @@ File format & i/o:
 
                 for i = 1:length(dataspec)
                     try
-                        if prod(dataspec{i}.size) > 640*480 % everything smaller than a VGA image -> save in .json
-                            if strcmp(dataspec{i}.name, 'cube')
+                        if prod(dataspec{i}.size) > self.minsize 
+                            if strcmp(dataspec{i}.name, 'cube') % todo: maybe reverse order of check; never try to save cube in .json
                                 id = 'cube';
                                 data_i = self.cube;
                             else
@@ -86,7 +88,7 @@ File format & i/o:
                             dataspec{i}.path = [savename, saveext];
                             
                             fid = fopen(savepath, 'wb+');
-                            fwrite(fid, data_i, dataspec{i}.type);
+                            fwrite(fid, data_i, dataspec{i}.type, dataspec{i}.mfmt);
                             fclose(fid);
                         else
                             dataspec{i}.(dataspec{i}.name) = self.data.(dataspec{i}.name);
@@ -121,7 +123,9 @@ File format & i/o:
             datasets = fields(self.data);
             for i = 1:length(datasets)
                 d = datasets{i};
-                dataspec{1+i} = struct('name', datasets{i}, 'size', size(self.data.(d)), 'type', class(self.data.(d)));
+                dataspec{1+i} = struct( ...
+                    'name', datasets{i}, 'size', size(self.data.(d)), ...
+                    'type', class(self.data.(d)), 'mfmt', self.mfmt);
             end
             
             % Remove empty fields from dataspec
@@ -142,10 +146,6 @@ File format & i/o:
             % Cast path to char
             self.path = char(path);
             
-            [~, sys] = memory;            
-            self.memory_limit = b2gb(sys.PhysicalMemory.Available * 0.75); 
-             % Files larger than this limit should be opened with memmap instead of fopen
-
             self.check_path
             
             if do_load
@@ -236,17 +236,12 @@ File format & i/o:
             switch lower(plane)
                 case {'xz', 'zx'}
                     slice_cube = permute(self.cube, [3,1,2]);
-                    plane = 'XZ';
                 case {'yz', 'zy'}
                     slice_cube = permute(self.cube, [3,2,1]);
-                    plane = 'YZ';
                 otherwise
                     slice_cube = self.cube;
-                    plane = 'XY';
             end
-
-            
-            
+  
             sf = slicefig(slice_cube, f, method, args, M); % todo: should have same contrast stuff as ortho...
         end
         
@@ -327,7 +322,16 @@ File format & i/o:
                     self.data.(d.name) = d.data;
                 elseif isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
                     fid = fopen([folder '/' d.path], 'rb+');
-                    A = cast(fread(fid, prod(d.size), d.type), d.type);
+                    
+                    try
+                        machinefmt = d.mfmt;
+                    catch err
+                        warning(err)
+                        sprintf('Default machinefmt: %s', self.mfmt)
+                        machinefmt = self.mfmt;
+                    end
+                    
+                    A = cast(fread(fid, prod(d.size), d.type), d.type, machinefmt);
                     fclose(fid);
                     A = reshape(A, d.size');
                     

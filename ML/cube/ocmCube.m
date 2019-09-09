@@ -114,9 +114,6 @@ classdef ocmCube < Cube
                 self.meta.Main.Dir.path = strcat(self.meta.Main.Dir.folder, '\', self.meta.Main.Dir.name);
                 self.meta.Main.Dir.extension = getExtension(self.meta.Main.Dir.name);
 
-                [~, sys] = memory;            
-                self.memory_limit = b2gb(sys.PhysicalMemory.Available * 0.75);
-
                 % recast data metadata fields from struct array into struct struct
 
                 dsts = {self.meta.Data.Name};
@@ -270,19 +267,12 @@ classdef ocmCube < Cube
             end
         end
         
-        function I = readRegion(self, start, shape, load_mode, dtype)
+        function I = readRegion(self, start, shape, dtype)
             % Reads specified region in file            
             switch nargin
                 case [0,1,2]
                     error('Data properties not specified')
                 case 3
-                    if self.size_GB < self.memory_limit
-                        load_mode = 'read';
-                    else
-                        load_mode = 'memmap';
-                    end
-                    dtype = self.dtype;
-                case 4
                     dtype = self.dtype;
             end
             
@@ -290,7 +280,6 @@ classdef ocmCube < Cube
             len = prod(shape);
            
             
-            if strcmp(load_mode, 'read')
                  switch dimensions
                         case 1                            
                             if strcmp(dtype, 'string') 
@@ -324,9 +313,6 @@ classdef ocmCube < Cube
 %                  if dimensions == 2
 %                      I = I'; % transpose 2d arrays (assuming timing -> vertical)
 %                  end
-            elseif strcmp(load_mode, 'memmap')
-                error('Size over 8 GB, to be implemented with memmap')
-            end
         end
     end
 end
