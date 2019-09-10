@@ -18,7 +18,6 @@
 			<Item Name="Variant Attributes to JSON string.vi" Type="VI" URL="../utility/Variant Attributes to JSON string.vi"/>
 		</Item>
 		<Item Name="CubeLogger.lvclass" Type="LVClass" URL="../CubeLogger/CubeLogger.lvclass"/>
-		<Item Name="quick-variant array size.vi" Type="VI" URL="../quick-variant array size.vi"/>
 		<Item Name="test.vi" Type="VI" URL="../test.vi"/>
 		<Item Name="Dependencies" Type="Dependencies">
 			<Item Name="user.lib" Type="Folder">
