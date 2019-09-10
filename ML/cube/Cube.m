@@ -331,7 +331,7 @@ File format & i/o:
                         machinefmt = self.mfmt;
                     end
                     
-                    A = cast(fread(fid, prod(d.size), d.type), d.type, machinefmt);
+                    A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
                     fclose(fid);
                     A = reshape(A, d.size');
                     
