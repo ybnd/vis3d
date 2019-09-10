@@ -331,6 +331,12 @@ File format & i/o:
                         machinefmt = self.mfmt;
                     end
                     
+                    switch lower(machinefmt)
+                        case {'little-endian', 'le', 'ieee-le'}
+                            machinefmt = 'ieee-le';
+                        case {'big-endian', 'be', 'ieee-be'}
+                    end
+                    
                     A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
                     fclose(fid);
                     A = reshape(A, d.size');
