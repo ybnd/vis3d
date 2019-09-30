@@ -82,6 +82,10 @@ File format & i/o:
                                 id = sprintf('data%s', num2str(i-2));  % i.e. cube is dataset 0;
                                 data_i = self.data.(dataspec{i}.name);
                             end
+                            
+                            if ~isfield(dataspec{i}, 'mfmt')
+                               dataspec{i}.mfmt = 'ieee-le'; % Little-endian encoding by default
+                            end
 
                             savepath = sprintf('%s.%s', path, id);
                             [~, savename, saveext] = fileparts(savepath);
@@ -326,8 +330,7 @@ File format & i/o:
                     try
                         machinefmt = d.mfmt;
                     catch err
-                        warning(err)
-                        sprintf('Default machinefmt: %s', self.mfmt)
+                        sprintf('Default machinefmt: %s', self.mfmt);
                         machinefmt = self.mfmt;
                     end
                     

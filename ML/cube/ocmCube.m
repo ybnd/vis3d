@@ -183,13 +183,9 @@ classdef ocmCube < Cube
             end
         end 
         
-        function extractData2(self, load_mode)
+        function extractData2(self)
             % Extracts data from the .ocmbin file ~region boundaries specified in the metadata
                 % load_mode:    files larger than 75% of available RAM are loaded using memmap                
-            switch nargin
-                case 1 
-                    load_mode = 'read';
-            end
             
             fields = fieldnames(self.meta.Data);
             
@@ -198,7 +194,7 @@ classdef ocmCube < Cube
             shape = self.meta.Data.cube.Size';      
             type = ['*' self.meta.Data.cube.dtype];
             
-            self.cube = self.readRegion(start, shape, load_mode, type);
+            self.cube = self.readRegion(start, shape, type);
             self.cube = permute(self.cube, [2,1,3]);
             i = find(strcmp(fields,'cube'));
             fields{i} = '';
@@ -208,7 +204,7 @@ classdef ocmCube < Cube
             shape = self.meta.Data.position.Size;   
             type = ['*' self.meta.Data.position.dtype]; 
            
-            self.data.zpos = self.readRegion(start, shape, load_mode, type);            
+            self.data.zpos = self.readRegion(start, shape, type);            
             i = find(strcmp(fields,'position'));
             fields{i} = '';
             
@@ -219,7 +215,7 @@ classdef ocmCube < Cube
                     shape = self.meta.Data.(fields{i}).Size';          
                     type = ['*' self.meta.Data.(fields{i}).dtype];
                     
-                    self.data.(fields{i}) = self.readRegion(start, shape, load_mode, type);
+                    self.data.(fields{i}) = self.readRegion(start, shape, type);
                     
                 end
             end
@@ -227,7 +223,7 @@ classdef ocmCube < Cube
             % Scan timing data
             start = self.meta.Time.Position.StartByte;
             stop = self.meta.Time.Position.LastByte;
-            timing_string = self.readRegion(start, stop-start, load_mode, 'string');
+            timing_string = self.readRegion(start, stop-start, 'string');
             
             try 
                 sss = strsplit(timing_string, '[');
