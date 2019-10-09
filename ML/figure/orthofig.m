@@ -361,7 +361,7 @@ classdef orthofig < cubefig
         end        
     end
     
-    methods(Access = public)
+    methods(Access = public)  % Actually, why are these even public at all?
         function update(self)
             update@cubefig(self)
             self.ui_update_images
@@ -403,7 +403,7 @@ classdef orthofig < cubefig
                 
                 % Only need to do this when building or rescaling
                 posXZ = self.image.XZ.Parent.Position;
-                    posYZ = self.image.YZ.Parent.Position;
+                posYZ = self.image.YZ.Parent.Position;
                     
                 dh = 12;
                 w0 = posXZ(1); h0 = posYZ(2)+dh; w = posXZ(3); h = (posYZ(4) - 4 - dh)/3; % 2px gap between axes
@@ -411,7 +411,7 @@ classdef orthofig < cubefig
                 setpixelposition(self.histograms.axes.XZ, [w0, h0+2+h, w, h]);
                 setpixelposition(self.histograms.axes.XY, [w0, h0+2+h+2+h, w, h]);
                 
-                if self.do_db
+                if self.do_db % Replace with call to CubePostprocess
                    xscale = 10*log10(self.histograms.xscale-min(self.histograms.xscale)+1); 
                 else
                    xscale = self.histograms.xscale;
@@ -419,7 +419,7 @@ classdef orthofig < cubefig
 
                 axes(self.histograms.axes.XY);
                 
-                if self.do_db
+                if self.do_db % Replace with call to CubePostprocess
                     self.histograms.XY = histogram(dBs(self.image.temp.XY), self.histograms.bins, ...
                         'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.1);
                     hold on

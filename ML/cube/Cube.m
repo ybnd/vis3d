@@ -3,14 +3,18 @@ classdef Cube < dynamicprops
 %{
 Description:
 ============
-    - Image cubes are considered as Z-stacks of XY images (images are confusing, so can be YX too)
-        * self.cube                     3d array
+    - Image cubes are Z-stacks of XY images (images are confusing, so can be YX too, but that doesn't matter really)
+        * self.cube                     3d matrix
     - Additional data in self.data
         * self.data.zpos                physical position of each cube in the stack
                                             does not take into account the units; this is up to you & common sense
         * ...
     - Optional metadata in self.meta
 
+
+    - In the context of this class, 'processing' refers to anything you do to self.cube or self.data manually 
+      in scripts or the MATLAB commandline, and 'post-processing' refers to processing routines defined in the 
+      properties below (see CubePostprocess class for further info)
 
     
 File format & i/o:
@@ -25,7 +29,7 @@ File format & i/o:
         path                                                        % file path
         name = 'cube'                                               % measurement name
         desc = '...'                                                % measurement description
-        cube = zeros(1,1,1);                                        % 3d dataset in orientation (X,Y,Z)  (don't make self.cube() to access self.data.cube() for performance & memory management reasons; otherwise it wil get copied multiple times when referenced)
+        cube = zeros(1,1,1);                                        % 3d dataset in orientation (X,Y,Z)  (don't make self.cube() method to access self.data.cube() for performance & memory management reasons; otherwise it wil get copied multiple times when referenced!)
         data = struct();                                            % cell array of generic data (vectors & matrices)
         meta = struct();                                            % metadata struct    
     end
@@ -35,7 +39,12 @@ File format & i/o:
         figures = [];
         is_loaded = false
         mfmt = 'ieee-le';
-        minsize = 640 * 480;                                        % everything smaller than a VGA image -> save in .json
+        minsize = 640 * 480;                                        % everything smaller than a VGA image -> save in .json to limit number of separate files
+        
+        postprocess = struct( ...  % define a set of postprocessing methods (see CubePostprocess.m for details)
+            'dBs', CubePostprocess({@(I,floor,ceil) dBs(I,floor,ceil)}, {{0,90}}, @single) , ...
+            'norm_u16', CubePostprocess({@(I) rescale(I,0,2^16-1), @uint16}, {{},{}}, @single, 'cube') ...
+        )    
     end
     
     methods(Access = public)

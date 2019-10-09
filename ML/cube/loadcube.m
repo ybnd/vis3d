@@ -7,7 +7,7 @@ function C = loadcube(varargin)
     switch getExtension(path)
         case ''
             if isfolder(path)
-                % todo: check if .tiff files in that folder
+                % todo: check if there actually are .tiff files in that folder
                 CubeClass = @tifCube;
             end
         case '.tif'
