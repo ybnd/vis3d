@@ -68,7 +68,7 @@ classdef InteractiveMethod < dynamicprops
            self.callback = callback; % todo: basic sanity checks 
         end
         
-        function out = do(self, in)
+        function out = do(self, in) % TODO: should handle nargin after 'in' by modifying self.current -> i.e. call slice.do(cube, 123) -> 123 to first parameter in self.current
             % Call method with current parameter values
             out = self.methodh(self.expects(in), self.current{:});
         end
