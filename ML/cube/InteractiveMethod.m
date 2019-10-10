@@ -1,4 +1,4 @@
-classdef CubeInteractiveMethod < dynamicprops    
+classdef InteractiveMethod < dynamicprops    
     %{ 
     Cube plugin class for interactive methods
     

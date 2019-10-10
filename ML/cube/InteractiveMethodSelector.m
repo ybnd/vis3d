@@ -1,4 +1,4 @@
-classdef CubeInteractiveMethodSelector
+classdef InteractiveMethodSelector
     % GUI element to handle 'selecting' CubeInteractiveMethod instances
     % i.e.: a 'ring control' to select slice or postprocess method -> selected instance adds parameters to GUI etc.
     

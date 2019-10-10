@@ -1,4 +1,4 @@
-classdef CubePostprocess < CubeInteractiveMethod
+classdef PostprocessMethod < InteractiveMethod
     %{ 
     Postprocessing method wrapper class    
     
@@ -18,7 +18,7 @@ classdef CubePostprocess < CubeInteractiveMethod
     end
     
     methods(Access = public)
-        function self = CubePostprocess(methodh, default, expects, workson, options)
+        function self = PostprocessMethod(methodh, default, expects, workson, options)
             switch nargin
                 case 2
                     expects = @single;
@@ -31,7 +31,7 @@ classdef CubePostprocess < CubeInteractiveMethod
                     options = struct();
             end
             
-            self@CubeInteractiveMethod(@(~)[], default, options, expects);   
+            self@InteractiveMethod(@(~)[], default, options, expects);   
             self.methodh = methodh; % Should perform some checks at interpret time!
                 % If {} contains anonymous functions with parameters, class should provide a CLI and GUI interface to
                 % interactively adjust these parameters
