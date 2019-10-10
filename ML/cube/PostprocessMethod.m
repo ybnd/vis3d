@@ -39,7 +39,7 @@ classdef PostprocessMethod < InteractiveMethod
             self.workson = workson;
         end
         
-        function out = perform(self, in)
+        function out = do(self, in)
             if ~isempty(self.process)
                 temp = normalize_input(in);
                

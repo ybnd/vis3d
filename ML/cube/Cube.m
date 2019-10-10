@@ -41,10 +41,15 @@ File format & i/o:
         mfmt = 'ieee-le';
         minsize = 640 * 480;                                        % everything smaller than a VGA image -> save in .json to limit number of separate files
         
-        postprocess = struct( ...  % define a set of postprocessing methods (see CubePostprocess.m for details)
-            'dBs', CubePostprocess({@(I,floor,ceil) dBs(I,floor,ceil)}, {{0,90}}, @single) , ...
-            'norm_u16', CubePostprocess({@(I) rescale(I,0,2^16-1), @uint16}, {{},{}}, @single, 'cube') ...
-        )    
+%         postprocess = struct( ...  % define a set of postprocessing methods (see CubePostprocess.m for details)
+%             'dBs', CubePostprocess({@(I,floor,ceil) dBs(I,floor,ceil)}, {{0,90}}, @single) , ...
+%             'norm_u16', CubePostprocess({@(I) rescale(I,0,2^16-1), @uint16}, {{},{}}, @single, 'cube') ...
+%         )    
+% TODO: should be implemented as a stand-alone function instead;
+% TODO: should slice/postprocess be a Cube-level thing, or a cubefig-level thing?
+% TODO:    ...right now, Cube-level makes more sense...
+% TODO:    ...specifics (like default settings, possible methods) can be overridden in Cube subclasses, e.g. ocmCube may have different default settings for the 'dBs' PostprocessMethod, or thorCube may have a different list of PostprocessMethods to begin with
+    
     end
     
     methods(Access = public)
