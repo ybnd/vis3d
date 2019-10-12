@@ -38,7 +38,7 @@ classdef InteractiveMethodSelector < dynamicprops
         function gui_handle = build_gui(obj, figure, anchor, callback, controls_callback)
             global gui
             if isempty(gui)
-                im;
+                interactive_methods;
             end
             
             gui_handle = uicontrol( ...
