@@ -105,7 +105,7 @@ classdef InteractiveMethod < dynamicprops
             
             gui_handles = cell(size(self.parname));      
             parN = length(self.parname);
-            gui_width = floor(gui.control_max_width / parN);
+            gui_width = floor(gui.controls_max_width / parN);
             
             for i = 1:parN                
                 if self.numeric(i)
@@ -121,6 +121,7 @@ classdef InteractiveMethod < dynamicprops
                 );
             
                 self.set_parameter_index(gui_handles{i}, i);
+                self.callback(); % todo: temporary, this is not a good idea if values for (source, event) are used!
             end
         end
         
