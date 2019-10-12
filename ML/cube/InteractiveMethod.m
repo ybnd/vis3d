@@ -28,32 +28,30 @@ classdef InteractiveMethod < dynamicprops
         callback = false;
         expects = @single;      % Expected input data type
         
-        gui_handles = {};     % 
-        gui_height = 20;
-        gui_max_width = 160;
-        gui_gap = 2;
+        gui_handles = {};       % 
     end
     
     methods(Access = public)
-        function self = InteractiveMethod(methodh, default, minimum, maximum, options, expects)
+        function self = InteractiveMethod(methodh, parname, default, minimum, maximum, options, expects)
             switch nargin
-                case 2
+                case 3
                     minimum = {};
                     maximum = {};
                     options = {};
                     expects = @single;
-                case 3
+                case 4
                     maximum = {};
                     options = {};
                     expects = @single;
-                case 4
+                case 5
                     options = {};
                     expects = @single;
-                case 5
+                case 6
                     expects = @single;
             end
             
             self.methodh = methodh;         % Should perform checks!
+            self.parname = parname;
             self.default = default;
             self.current = self.default;
             self.minimum = minimum;
@@ -73,7 +71,7 @@ classdef InteractiveMethod < dynamicprops
             out = self.methodh(self.expects(in), self.current{:});
         end
         
-        function update_numeric_parameter(self, source, event)
+        function update_numeric_parameter(self, source, ~)
             i = self.get_parameter_index(source); % Parameter index (see InteractiveMethod.build_gui)         
             new_value = str2num(source.String);
             self.current{i} = min(max(new_value, self.minimum{i}), self.maximum{i}); % todo: do this same sanity check when setting default value in constructor!
@@ -84,7 +82,7 @@ classdef InteractiveMethod < dynamicprops
             end
         end
         
-        function update_string_parameter(self, source, event)
+        function update_string_parameter(self, source, ~)
             i = self.get_parameter_index(source); % Parameter index (see InteractiveMethod.build_gui)
             self.current{i} = source.String;
             if isa(self.callback, 'function_handle')
@@ -92,27 +90,34 @@ classdef InteractiveMethod < dynamicprops
             end
         end
         
-        function gui_handles = build_gui(self, figure, anchor)
+        function gui_handles = build_gui(self, figure, anchor, callback)
             % Build own GUI at anchor in figure
             % ALSO: implement callbacks ~ this gui
             
             % TODO: handle string and numeric values, uicontrol('edit') vs uieditfield
             
+            global gui
+            if isempty(gui)
+                interactive_methods;
+            end
+            
+            self.set_callback(callback);
+            
             gui_handles = cell(size(self.parname));      
             parN = length(self.parname);
-            gui_width = floor(self.gui_max_width / parN);
+            gui_width = floor(gui.control_max_width / parN);
             
             for i = 1:parN                
                 if self.numeric(i)
-                    callback = @self.update_numeric_parameter;
+                    parameter_callback = @self.update_numeric_parameter;
                 else
-                    callback = @self.update_string_parameter;
+                    parameter_callback = @self.update_string_parameter;
                 end
                 
                 gui_handles{i} = uicontrol( ...
                     'Parent', figure, 'Style', 'edit', 'TooltipString', self.parname{i}, ...
-                    'String', num2str(self.current{i}), 'Callback', callback, ...
-                    'Position', [anchor(1)+(i-1)*(gui_width+self.gui_gap), anchor(2), gui_width, self.gui_height] ...
+                    'String', num2str(self.current{i}), 'Callback', parameter_callback, ...
+                    'Position', [anchor(1)+(i-1)*(gui_width+gui.gap), anchor(2), gui_width, gui.height] ...
                 );
             
                 self.set_parameter_index(gui_handles{i}, i);
@@ -150,32 +155,35 @@ classdef InteractiveMethod < dynamicprops
                switch fs.type
                    case 'anonymous'
                        [tokens] = regexp(fs.function, '@\(([a-zA-Z0-9,~_]+)\)(.*)', 'tokens');        
-                        % To get 'pars': extract contents of brackets "@(...)" into a cell array of strings <- second token
-                        self.parname = split(tokens{1}{1}, ',');
-                        self.parname = self.parname(2:end); % First parameter doesn't need an interface (it's the slice or cube)
-                        % To get 'func': remove "@(...) " from fs.func <- first token
+                       
+                        if isempty(self.parname)
+                            % To get 'pars': extract contents of brackets "@(...)" into a cell array of strings <- second token
+                            self.parname = split(tokens{1}{1}, ',');
+                            self.parname = self.parname(2:end); % First parameter doesn't need an interface (it's the slice or cube)
+                            % To get 'func': remove "@(...) " from fs.func <- first token
+                        end
                         self.method = tokens{1}{2};    
                         
                         % TODO: string parameter min/max should just be ''
                         
-                        if isempty(self.minimum)
-                           self.minimum = num2cell(-Inf * ones(size(self.default)));
-                        end
                         
-                        if isempty(self.maximum)
-                           self.maximum = num2cell(Inf * ones(size(self.default)));
-                        end
-                        
-                        for i = 1:length(self.default)
-                            self.numeric(i) = isnumeric(self.default{i});
-                        end
-                        
-                        
-                   case 'simple'
-                        error('Please wrap regular functions in an anonymous function so parameter names can be retained!')
+                   case {'simple', 'scopedfunction'}
+                        self.method = fs.function;
                    otherwise
-                       error('What even is this function: %s', fs.function) 
-               end
+                       error('What even is a %s function: %s', fs.type, fs.function)
+                end
+               
+                if isempty(self.minimum)
+                   self.minimum = num2cell(-Inf * ones(size(self.default)));
+                end
+
+                if isempty(self.maximum)
+                   self.maximum = num2cell(Inf * ones(size(self.default)));
+                end
+
+                for i = 1:length(self.default)
+                    self.numeric(i) = isnumeric(self.default{i});
+                end
             else
                 error('Function handle is empty also make this error more informative pls')
             end
