@@ -1,3 +1,5 @@
+clear all; close all
+
 f = figure;
 a = axes;
 

@@ -16,7 +16,7 @@ if isempty(im)
     
     % GUI geometry
     gui = struct( ...
-        'height', 18, 'gap', 2, 'selector_width', 80, 'controls_max_width', 160 ...
+        'height', 22, 'gap', 2, 'selector_width', 80, 'controls_max_width', 160 ...     % popupmenu uicontrol height is fixed at 22px
     );
 
     % Slice methods
