@@ -21,6 +21,7 @@ classdef orthofig < cubefig
         histograms = struct('bins', 200);
         show_histograms = false;
         ui_histograms;
+        
     end
     
     methods 
@@ -147,7 +148,7 @@ classdef orthofig < cubefig
             self.ui_update_images;
             self.place_overlay;
             self.ui_update_histograms;
-            set(self.f, 'visible', 'on')
+            set(self.f, 'visible', 'on')       
         end    
     
     %% Callbacks
@@ -370,6 +371,7 @@ classdef orthofig < cubefig
         end
         
         function ui_update_images(self)
+            
             self.image.temp.XY = self.slice_method(self.C,self.current_slice(3),'z',self.slice_args);
             self.image.temp.XZ = self.slice_method(self.C,self.current_slice(2),'y',self.slice_args);
             self.image.temp.YZ = self.slice_method(self.C,self.current_slice(1),'x',self.slice_args);            
@@ -390,14 +392,23 @@ classdef orthofig < cubefig
         
         function ui_update_histograms(self)            
             if self.show_histograms
+                
                 % Don't do global histogram: takes too long, but parallel pool takes even longer to start up :)                    
                 if ~any(strcmp(fieldnames(self.histograms), 'axes'))
                     
-
                     self.histograms.axes.YZ = axes(self.f);       
                     self.histograms.axes.XZ = axes(self.f);       
                     self.histograms.axes.XY = axes(self.f);
+                    
+                    set(self.histograms.axes.YZ, 'YTick', []);
+                    set(self.histograms.axes.YZ, 'XTick', []);
+                    set(self.histograms.axes.XZ, 'YTick', []);
+                    set(self.histograms.axes.XZ, 'XTick', []);
+                    set(self.histograms.axes.XY, 'YTick', []);
+                    set(self.histograms.axes.XY, 'XTick', []);
                      
+                    title(self.histograms.axes.XY, 'XY', 'Position', [1,1,0])
+                    
                     self.histograms.xscale = [rmin(self.C), rmax(self.C)];
                 end
                 
@@ -405,11 +416,12 @@ classdef orthofig < cubefig
                 posXZ = self.image.XZ.Parent.Position;
                 posYZ = self.image.YZ.Parent.Position;
                     
-                dh = 12;
-                w0 = posXZ(1); h0 = posYZ(2)+dh; w = posXZ(3); h = (posYZ(4) - 4 - dh)/3; % 2px gap between axes
+                dh = 0;
+                gap = -1;
+                w0 = posXZ(1); h0 = posYZ(2)+dh; w = posXZ(3); h = (posYZ(4) - 2*gap - dh)/3;
                 setpixelposition(self.histograms.axes.YZ, [w0, h0, w, h]);
-                setpixelposition(self.histograms.axes.XZ, [w0, h0+2+h, w, h]);
-                setpixelposition(self.histograms.axes.XY, [w0, h0+2+h+2+h, w, h]);
+                setpixelposition(self.histograms.axes.XZ, [w0, h0+gap+h, w, h]);
+                setpixelposition(self.histograms.axes.XY, [w0, h0+gap+h+gap+h, w, h]);
                 
                 if self.do_db % Replace with call to CubePostprocess
                    xscale = 10*log10(self.histograms.xscale-min(self.histograms.xscale)+1); 
@@ -431,9 +443,7 @@ classdef orthofig < cubefig
                 end
                 set(gca, 'YScale', 'Log');
                 set(gca, 'YTick', []);
-                set(gca, 'YLabel', []);
                 set(gca, 'XTick', []);
-                set(gca, 'XLabel', []);
                 xlim(xscale);
 
                 axes(self.histograms.axes.XZ);
@@ -450,9 +460,7 @@ classdef orthofig < cubefig
                 end
                 set(gca, 'YScale', 'Log');
                 set(gca, 'YTick', []);
-                set(gca, 'YLabel', []);
                 set(gca, 'XTick', []);
-                set(gca, 'XLabel', []);
                 xlim(xscale);
 
                 axes(self.histograms.axes.YZ);
@@ -469,7 +477,7 @@ classdef orthofig < cubefig
                 end
                 set(gca, 'YScale', 'Log');
                 set(gca, 'YTick', []);
-                set(gca, 'YLabel', []);
+                set(gca, 'XTick', []);
                 xlim(xscale);
             end
         end

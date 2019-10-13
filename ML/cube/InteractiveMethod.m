@@ -125,7 +125,7 @@ classdef InteractiveMethod < dynamicprops
             end
         end
         
-        function cli(self)
+        function cli(~)
             % Prompt own parameters in the MATLAB commandline
             %   User enters string, also show default values
             %       - If empty string (i.e. just pressed enter) -> use default values

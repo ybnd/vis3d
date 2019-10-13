@@ -3,7 +3,7 @@ clear all; close all
 f = figure;
 a = axes;
 
-anchor = [100,100];
+anchor = [5,5];
 global selector
 
 linear = InteractiveMethod(@(x, par1, par2) par1*x+par2, {'linear, first parameter', 'linear, second parameter'}, {30,20}, {0.001, 0.001}, {120, 120});

@@ -344,7 +344,7 @@ File format & i/o:
                     try
                         machinefmt = d.mfmt;
                     catch err
-                        warning(err)
+                        warning(err.message)
                         sprintf('Default machinefmt: %s', self.mfmt);
                         machinefmt = self.mfmt;
                     end
