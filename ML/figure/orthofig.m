@@ -81,6 +81,20 @@ classdef orthofig < cubefig
             ap = get(aXY, 'Position');
             w_xy = ap(3);   % width of XY image
             
+            interactive_methods;
+            global im
+            global gui
+            
+            self.w_img = gui.selector_width + gui.controls_max_width + 3*gui.gap;
+
+            self.slice = im.selectors.slice;
+            self.postprocess = im.selectors.postprocess;
+            
+            self.slice.build_gui(self.f, [self.border, 47], @self.ui_update_images, {'position', 'axis'});
+            self.postprocess.build_gui(self.f, [self.border, 47-gui.height-gui.gap], @self.ui_update_images);
+            self.postprocess.select('dBs')
+            
+            
 
             self.control.Z_slider = uicontrol('style', 'slider', ...
                 'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, ...
@@ -131,16 +145,7 @@ classdef orthofig < cubefig
             );
             images = [self.image.XY.Parent, self.image.XZ.Parent, self.image.YZ.Parent];
             
-            interactive_methods;
-            global im
-            global gui
-
-            self.slice = im.selectors.slice;
-            self.postprocess = im.selectors.postprocess;
             
-            self.slice.build_gui(self.f, [self.border, 47], @self.ui_update_images, {'position', 'axis'});
-            self.postprocess.build_gui(self.f, [self.border, 47-gui.height-gui.gap], @self.ui_update_images);
-            self.postprocess.select('dBs')
         
 %             self.imagecontrol = postprocon(self, positions, @self.ui_update_images, images);
             
