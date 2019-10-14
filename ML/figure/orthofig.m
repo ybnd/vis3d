@@ -5,7 +5,9 @@ classdef orthofig < cubefig
         previous_slice = [1,1,1];   
     end
     
-    properties (Access = private)                
+    properties (Access = private)      
+        range;
+        
         z_ratio = 2;
         pad = [75 0 0 0]
         
@@ -58,6 +60,7 @@ classdef orthofig < cubefig
             
             self.slice_method = slice_method;
             
+            self.range = [rmin(C), rmax(C)];
             self.build;
         end
         
@@ -189,7 +192,7 @@ classdef orthofig < cubefig
 
             self.image.temp.preXY = self.slice.do(self.C,self.current_slice(3),'z');
             self.image.temp.XY = self.postprocess.do(self.image.temp.preXY);
-            self.image.XY.set('CData', rescale(self.image.temp.XY));
+            self.image.XY.set('CData', self.rescale(self.image.temp.XY));
 
             self.place_overlay;
             self.ui_update_histograms;
@@ -212,7 +215,7 @@ classdef orthofig < cubefig
             
             self.image.temp.preXZ = self.slice.do(self.C,self.current_slice(2),'y');
             self.image.temp.XZ = self.postprocess.do(self.image.temp.preXZ);
-            self.image.XZ.set('CData', rescale(self.image.temp.XZ));
+            self.image.XZ.set('CData', self.rescale(self.image.temp.XZ));
             
             self.place_overlay;
             self.ui_update_histograms;
@@ -235,7 +238,7 @@ classdef orthofig < cubefig
 
             self.image.temp.preYZ = self.slice.do(self.C,self.current_slice(1),'x');
             self.image.temp.YZ = self.postprocess.do(self.image.temp.preYZ);   
-            self.image.YZ.set('CData', rescale(self.image.temp.YZ));
+            self.image.YZ.set('CData', self.rescale(self.image.temp.YZ));
 
             self.place_overlay;
             self.ui_update_histograms;
@@ -399,6 +402,11 @@ classdef orthofig < cubefig
             self.place_overlay
         end
         
+        function I = rescale(self, I)
+            % Rescale image to [0,1] based on global minimum / maximum
+            I = rescale((I - self.postprocess.do(self.range(1))) / self.postprocess.do((self.range(2) - self.range(1))));
+        end
+        
         function ui_update_images(self)
             self.image.temp.preXY = self.slice.do(self.C,self.current_slice(3),'z');
             self.image.temp.preXZ = self.slice.do(self.C,self.current_slice(2),'y');
@@ -407,9 +415,9 @@ classdef orthofig < cubefig
             self.image.temp.XZ = self.postprocess.do(self.image.temp.preXZ);
             self.image.temp.YZ = self.postprocess.do(self.image.temp.preYZ);   
             
-            self.image.XY.set('CData', rescale(self.image.temp.XY));
-            self.image.XZ.set('CData', rescale(self.image.temp.XZ));
-            self.image.YZ.set('CData', rescale(self.image.temp.YZ));
+            self.image.XY.set('CData', self.rescale(self.image.temp.XY));
+            self.image.XZ.set('CData', self.rescale(self.image.temp.XZ));
+            self.image.YZ.set('CData', self.rescale(self.image.temp.YZ));
             
             self.ui_update_histograms;
             
@@ -464,11 +472,7 @@ classdef orthofig < cubefig
                 setpixelposition(self.histograms.axes.XZ, [w0, h0+gap+h, w, h]);
                 setpixelposition(self.histograms.axes.XY, [w0, h0+gap+h+gap+h, w, h]);
                 
-                if self.do_db % Replace with call to CubePostprocess
-                   xscale = 10*log10(self.histograms.xscale-min(self.histograms.xscale)+1); 
-                else
-                   xscale = self.histograms.xscale;
-                end
+                xscale = self.postprocess.do(self.histograms.xscale-min(self.histograms.xscale)+1); 
 
                 axes(self.histograms.axes.XY);
                 

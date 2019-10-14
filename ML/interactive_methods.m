@@ -59,6 +59,10 @@ function I = blur_slice(C,s,axis,XY_sigma,Z_sigma)
     % based on sigma & location, extract a subset of cube (enough slices around the actual slice + handle edge cases)
     % blur with imgaussfilt3
     % get slice from the correct position (keep in mind the edge cases!)
+    
+    if Z_sigma <= 0
+       Z_sigma = 0.1; 
+    end
  
     size_C = size(C);
     switch lower(axis)
