@@ -42,23 +42,6 @@ classdef ocmCube < Cube
                 self.is_loaded = true;
             end
         end
-
-        function ij(self, zrange)
-            switch nargin
-                case 1
-                    zrange = 1:length(self.zpos);
-            end
-            
-            if ~exist('MIJ', 'class')
-                Miji;
-            end
-            
-            if isempty(self.cube_reduced)
-                self.cube_reduced = uint16(rescale(self.cube, 0, 2^16));
-            end
-            
-            MIJ.createImage(self.meta.Main.File.Name, self.cube_reduced(:,:,zrange), true);
-        end
     end   
     
     methods(Access = private)

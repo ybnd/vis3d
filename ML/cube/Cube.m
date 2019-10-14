@@ -84,7 +84,27 @@ File format & i/o:
                 meta_struct.name = self.name;
                 meta_struct.desc = self.desc;
 
-                dataspec = self.data_specification;
+                % For each dataset (self.cube and all datasets in self.data), return
+                %       - dataset name
+                %       - size vector
+                %       - datatype
+
+                dataspec = cell(length(self.data)+1,1);
+
+                % Cube data
+                dataspec{1} = struct('name', 'cube', 'size', size(self.cube), 'type', class(self.cube));      
+
+                % Arbitrary data
+                datasets = fields(self.data);
+                for i = 1:length(datasets)
+                    d = datasets{i};
+                    dataspec{1+i} = struct( ...
+                        'name', datasets{i}, 'size', size(self.data.(d)), ...
+                        'type', class(self.data.(d)), 'mfmt', self.mfmt);
+                end
+
+                % Remove empty fields from dataspec
+                dataspec = dataspec(~cellfun('isempty', dataspec));
 
                 for i = 1:length(dataspec)
                     try
@@ -124,30 +144,6 @@ File format & i/o:
                 fprintf(fid, '%s', prettyjson(jsonencode(meta_struct)));
                 fclose(fid);    
             end
-        end
-        
-        function dataspec = data_specification(self)
-            % For each dataset (self.cube and all datasets in self.data), return
-            %       - dataset name
-            %       - size vector
-            %       - datatype
-
-            dataspec = cell(length(self.data)+1,1);
-
-            % Cube data
-            dataspec{1} = struct('name', 'cube', 'size', size(self.cube), 'type', class(self.cube));      
-
-            % Arbitrary data
-            datasets = fields(self.data);
-            for i = 1:length(datasets)
-                d = datasets{i};
-                dataspec{1+i} = struct( ...
-                    'name', datasets{i}, 'size', size(self.data.(d)), ...
-                    'type', class(self.data.(d)), 'mfmt', self.mfmt);
-            end
-            
-            % Remove empty fields from dataspec
-            dataspec = dataspec(~cellfun('isempty', dataspec));
         end
     end
     
@@ -389,10 +385,10 @@ File format & i/o:
             end
         end
         
-        function save(self, format, process, path, options)
+        function save(self, fmt, process, path, options)
             switch nargin
                 case 1
-                    format = ''; process = @pass_data; path = ''; options = struct();
+                    fmt = ''; process = @pass_data; path = ''; options = struct();
                 case 2
                     process = @pass_data; path = ''; options = struct();
                 case 3
@@ -401,7 +397,7 @@ File format & i/o:
                     options = struct();
             end
             
-            switch lower(format)
+            switch lower(fmt)
                 case {'tif', 'tiff'}
                     tempCube = tifCube(self.path, false);
                 case {'', '.cube', '.json'}
