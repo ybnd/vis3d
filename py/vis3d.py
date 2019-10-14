@@ -6,25 +6,26 @@ from typing import Tuple, Type
 
 
 def string_to_np_dtype(dtype: str) -> Type[np.dtype]:
-    if dtype == 'u8' or dtype == 'uint8':
+    if dtype in ['u8', 'uint8']:
         return np.uint8
-    elif dtype == 'u16' or dtype == 'uint16':
+    elif dtype in ['u16', 'uint16']:
         return np.uint16
-    elif dtype == 'u32' or dtype == 'uint32':
+    elif dtype in ['u30', 'uint32']:
         return np.uint32
-    elif dtype == 'u64' or dtype == 'uint64':
+    elif dtype in ['u64', 'uint64']:
         return np.uint64
-    elif dtype == 'i8' or dtype == 'int8':
+    elif dtype in ['i8', 'int8']:
         return np.int8
-    elif dtype == 'i16' or dtype == 'int16':
+    elif dtype in ['i16', 'int16']:
         return np.int16
-    elif dtype == 'i32' or dtype == 'int32':
+    elif dtype in ['i32', 'int32']:
         return np.int32
-    elif dtype == 'i64' or dtype == 'int64':
+    elif dtype in ['i64', 'int64']:
         return np.int64
-    elif dtype == 'dbl' or dtype == 'double' or dtype == 'float':
+    elif dtype in ['dbl', 'double']:
         return np.double
-    elif dtype == 'sgl' or dtype == 'single':
+    elif dtype in ['sgl', 'single', 'float']:
+        # 3d images tend to be large, default to single if not specified *which* float
         return np.single
     else:
         warnings.warn(f'dtype string "{dtype}" is invalid or empty; defaulting to {np.uint32}')
