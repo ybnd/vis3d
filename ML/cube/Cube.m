@@ -213,7 +213,7 @@ File format & i/o:
             live_A_scan(self.cube, loc, self.zpos, 5, 1, do_fwhm, false);
         end
         
-        function plane = zplane(self, k)
+        function plane = zplane(self, k)    % TODO: maybe do this ~ slice/postprocess InteractiveMethodSelectors associated to Cube instance
             % Returns the xy plane at position z(k)
             if ischar(k)
                 switch k
@@ -300,16 +300,6 @@ File format & i/o:
             self.figures = [self.figures, f];
             
             of = orthofig(self.cube, f, M, z, slice_method);
-        end
-        
-        function topdown(self)
-            %{
-                Summed & normalized topdown projection
-            %}
-           f = figure('Name', self.name);
-           self.figures = [self.figures, f];
-           
-           imshow_tight(normalize(sum(self.cube,3)));
         end
         
         function explore(self)
