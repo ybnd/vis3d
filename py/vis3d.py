@@ -140,3 +140,13 @@ class thorCube(Cube):
     def load_data(self):
         """ Load from Thorlabs .oct file (.zip container with XML, images & raw data) """
         pass
+
+
+def loadcube(path: str, args, kwargs) -> Cube:
+    """ Load a Cube instance from path """
+    pass
+
+
+def savecube(C: Cube, path: str):
+    """ Save Cube instance C to path """
+    pass
