@@ -187,7 +187,8 @@ classdef orthofig < cubefig
 %                 self.image.XY.set('CData', self.image.temp.XY);
 %             end
 
-            self.image.temp.XY = self.postprocess.do(self.slice.do(self.C, self.current_slice(3), 'z'));
+            self.image.temp.preXY = self.slice.do(self.C,self.current_slice(3),'z');
+            self.image.temp.XY = self.postprocess.do(self.image.temp.preXY);
             self.image.XY.set('CData', rescale(self.image.temp.XY));
 
             self.place_overlay;
@@ -209,7 +210,8 @@ classdef orthofig < cubefig
 %                 self.image.XZ.set('CData', self.image.temp.XZ);
 %             end
             
-            self.image.temp.XZ = self.postprocess.do(self.slice.do(self.C, self.current_slice(2), 'y'));
+            self.image.temp.preXZ = self.slice.do(self.C,self.current_slice(2),'y');
+            self.image.temp.XZ = self.postprocess.do(self.image.temp.preXZ);
             self.image.XZ.set('CData', rescale(self.image.temp.XZ));
             
             self.place_overlay;
@@ -231,7 +233,8 @@ classdef orthofig < cubefig
 %                 self.image.YZ.set('CData', self.image.temp.YZ);
 %             end
 
-            self.image.temp.YZ = self.postprocess.do(self.slice.do(self.C, self.current_slice(1), 'x'));
+            self.image.temp.preYZ = self.slice.do(self.C,self.current_slice(1),'x');
+            self.image.temp.YZ = self.postprocess.do(self.image.temp.preYZ);   
             self.image.YZ.set('CData', rescale(self.image.temp.YZ));
 
             self.place_overlay;
@@ -397,13 +400,18 @@ classdef orthofig < cubefig
         end
         
         function ui_update_images(self)
-            self.image.temp.XY = self.postprocess.do(self.slice.do(self.C,self.current_slice(3),'z'));
-            self.image.temp.XZ = self.postprocess.do(self.slice.do(self.C,self.current_slice(2),'y'));
-            self.image.temp.YZ = self.postprocess.do(self.slice.do(self.C,self.current_slice(1),'x'));   
+            self.image.temp.preXY = self.slice.do(self.C,self.current_slice(3),'z');
+            self.image.temp.preXZ = self.slice.do(self.C,self.current_slice(2),'y');
+            self.image.temp.preYZ = self.slice.do(self.C,self.current_slice(1),'x');
+            self.image.temp.XY = self.postprocess.do(self.image.temp.preXY);
+            self.image.temp.XZ = self.postprocess.do(self.image.temp.preXZ);
+            self.image.temp.YZ = self.postprocess.do(self.image.temp.preYZ);   
             
             self.image.XY.set('CData', rescale(self.image.temp.XY));
             self.image.XZ.set('CData', rescale(self.image.temp.XZ));
             self.image.YZ.set('CData', rescale(self.image.temp.YZ));
+            
+            self.ui_update_histograms;
             
 %             self.image.temp.XY = self.slice_method(self.C,self.current_slice(3),'z',self.slice_args);
 %             self.image.temp.XZ = self.slice_method(self.C,self.current_slice(2),'y',self.slice_args);
@@ -464,53 +472,44 @@ classdef orthofig < cubefig
 
                 axes(self.histograms.axes.XY);
                 
-                if self.do_db % Replace with call to CubePostprocess
-                    self.histograms.XY = histogram(dBs(self.image.temp.XY), self.histograms.bins, ...
-                        'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.1);
-                    hold on
-                    histogram(self.image.temp.XY_db, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
-                    hold off
-                else
-                    self.histograms.XY = histogram(self.image.temp.XY, self.histograms.bins, ...
-                    'LineStyle', 'none', 'FaceColor', 'k');
-                end
+                self.histograms.XY = histogram(self.image.temp.XY, self.histograms.bins, ...
+                        'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5);
+%                 hold on
+%                 histogram(self.image.temp.preXY, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
+%                 hold off
                 set(gca, 'YScale', 'Log');
                 set(gca, 'YTick', []);
                 set(gca, 'XTick', []);
+                set(gca, 'XColor', [0.5, 0.5, 0.5]);
+                set(gca, 'YColor', [0.5, 0.5, 0.5]);
                 xlim(xscale);
 
                 axes(self.histograms.axes.XZ);
                 
-                if self.do_db
-                    self.histograms.XZ = histogram(dBs(self.image.temp.XZ), self.histograms.bins, ...
-                        'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.1);
-                    hold on
-                    histogram(self.image.temp.XZ_db, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
-                    hold off
-                else
-                    self.histograms.XZ = histogram(self.image.temp.XZ, self.histograms.bins, ...
-                        'LineStyle', 'none', 'FaceColor', 'k');
-                end
+                self.histograms.XY = histogram(self.image.temp.XZ, self.histograms.bins, ...
+                        'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5);
+%                 hold on
+%                 histogram(self.image.temp.preXZ, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
+%                 hold off
                 set(gca, 'YScale', 'Log');
                 set(gca, 'YTick', []);
                 set(gca, 'XTick', []);
+                set(gca, 'XColor', [0.5, 0.5, 0.5]);
+                set(gca, 'YColor', [0.5, 0.5, 0.5]);
                 xlim(xscale);
 
                 axes(self.histograms.axes.YZ);
                 
-                if self.do_db
-                    self.histograms.YZ = histogram(dBs(self.image.temp.YZ), self.histograms.bins, ...
-                        'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.1);
-                    hold on
-                    histogram(self.image.temp.YZ_db, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
-                    hold off
-                else
-                    self.histograms.YZ = histogram(self.image.temp.YZ, self.histograms.bins, ...
-                        'LineStyle', 'none', 'FaceColor', 'k');
-                end
+                self.histograms.XY = histogram(self.image.temp.YZ, self.histograms.bins, ...
+                        'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5);
+%                 hold on
+%                 histogram(self.image.temp.preYZ, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
+%                 hold off
                 set(gca, 'YScale', 'Log');
                 set(gca, 'YTick', []);
                 set(gca, 'XTick', []);
+                set(gca, 'XColor', [0.5, 0.5, 0.5]);
+                set(gca, 'YColor', [0.5, 0.5, 0.5]);
                 xlim(xscale);
             end
         end
