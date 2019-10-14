@@ -17,10 +17,10 @@ classdef orthofig < cubefig
         postprocess = false;    % Placeholder for postprocess InteractiveMethodSelector
         
         border = 5;     % border distance (v,h)
-        w_img = 80;     % image controls width
+        w_img = 160;     % image controls width
         d_img_xyz = 20; % distance between image controls and axis controls
         w_lab = 40;     % axis control label width
-        w_db = 45;      % width of db button
+        w_db = 82;      % width of db button
         
         histograms = struct('bins', 200);
         show_histograms = false;
@@ -138,11 +138,11 @@ classdef orthofig < cubefig
             self.slice = im.selectors.slice;
             self.postprocess = im.selectors.postprocess;
             
-            self.slice.build_gui(self.f, [self.border, 108], @self.ui_update_images, {'position', 'axis'});
-            self.postprocess.build_gui(self.f, [self.border, 108-gui.height-gui.gap], @self.ui_update_images);
+            self.slice.build_gui(self.f, [self.border, 47], @self.ui_update_images, {'position', 'axis'});
+            self.postprocess.build_gui(self.f, [self.border, 47-gui.height-gui.gap], @self.ui_update_images);
             self.postprocess.select('dBs')
         
-            self.imagecontrol = postprocon(self, positions, @self.ui_update_images, images);
+%             self.imagecontrol = postprocon(self, positions, @self.ui_update_images, images);
             
             dfpos = [0 0 self.pad(3)+self.pad(4) self.pad(1)+self.pad(2)];
             dhpos = [self.pad(3) self.pad(1) 0 0];
@@ -156,7 +156,7 @@ classdef orthofig < cubefig
             set(self.image.XZ.Parent, 'Position', [X+2,Z+2,Z,Y] + dhpos);
             set(self.image.YZ.Parent, 'Position', [0,0,X,Z] + dhpos);  
             
-            self.ui_histograms = uicontrol('Style', 'togglebutton', 'String', 'Histo', ...
+            self.ui_histograms = uicontrol('Style', 'togglebutton', 'String', 'Histogram', ...
                 'Position', [positions.ui_db(1), self.border, positions.ui_db(3), positions.ui_db(4)], ...
                 'Value', self.show_histograms, 'callback', @self.ui_toggle_histograms);
             
