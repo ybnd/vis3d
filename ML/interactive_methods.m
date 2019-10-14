@@ -11,36 +11,37 @@
 global im
 global gui
 
-if isempty(im)
-    im = struct();
+im = struct();
+
+% GUI geometry
+gui = struct( ...
+    'selector_fontsize', 7, 'fontsize', 9, 'height', 19, 'gap', 2, 'selector_width', 80, 'controls_max_width', 80 ...     
+);  % popupmenu uicontrol height is determined by font size. 
     
-    % GUI geometry
-    gui = struct( ...
-        'height', 22, 'gap', 2, 'selector_width', 80, 'controls_max_width', 160 ...     % popupmenu uicontrol height is fixed at 22px
-    );
 
-    % Slice methods
-    im.slice = struct( ...
-        'slice', ...
-            InteractiveMethod(@slice, {'position', 'axis'}, {1, 'z'}), ...
-        'lift_slice', ...
-            InteractiveMethod(@lift_slice, {'position', 'axis'}, {1, 'z'}), ...
-        'normalize_slice', ...
-            InteractiveMethod(@normalize_slice, {'position', 'axis'}, {1, 'z'}), ...  
-        'blur_slice', ...
-            InteractiveMethod(@blur_slice, {'position', 'axis', 'sigma'}, {1, 'z', [3 3 1]}) ...
-    );
 
-    % Postprocess methods
-    im.postprocess = struct( ...
-    );
+% Slice methods
+im.slice = struct( ...
+    'slice', ...
+        InteractiveMethod(@slice, {'position', 'axis'}, {1, 'z'}), ...
+    'blur_slice', ...
+        InteractiveMethod(@blur_slice, {'position', 'axis', 'XY sigma', 'Z sigma'}, {1, 'z', 3, 1}) ...
+);
 
-    im.selectors = struct( ...
-        'slice', InteractiveMethodSelector('slice', im.slice), ...
-        'postprocess', InteractiveMethodSelector('postprocess', im.postprocess) ...
-    );
-end
+% Postprocess methods
+im.postprocess = struct( ...
+    'none', ...
+        InteractiveMethod(@none, {}, {}), ...
+    'dBs', ...
+        InteractiveMethod(@dBs, {'floor', 'ceiling'}, {5, 60}) ...
+);
 
+im.selectors = struct( ...
+    'slice', InteractiveMethodSelector('slice method', im.slice), ...
+    'postprocess', InteractiveMethodSelector('postprocess method', im.postprocess) ...
+);
+
+%% Slice methods -> return an XY image I at position s from a cube C
 
 function [I] = slice(C, s, axis)
     assert(isa('axis','char'));
@@ -54,19 +55,34 @@ function [I] = slice(C, s, axis)
     end
 end
 
-function I = lift_slice(C,s,axis)
-    I = slice(C,s,axis);
-    I = double(C(:,:,s));
-    I = I - min(min(I));
-end
-
-function I = normalize_slice(C,s,axis)
-    I = slice(C,s,axis);    
-    I = rescale(single(I));
-end
-
-function I = blur_slice(C,s,axis,sigma)
+function I = blur_slice(C,s,axis,XY_sigma,Z_sigma)
     % based on sigma & location, extract a subset of cube (enough slices around the actual slice + handle edge cases)
     % blur with imgaussfilt3
     % get slice from the correct position (keep in mind the edge cases!)
+ 
+    size_C = size(C);
+    switch lower(axis)
+        case 'x'
+            sigma = [Z_sigma, XY_sigma, XY_sigma];
+            limit = size_C(1);
+        case 'y'
+            sigma = [XY_sigma, Z_sigma, XY_sigma];
+            limit = size_C(2);
+        otherwise
+            sigma = [XY_sigma, XY_sigma, Z_sigma];
+            limit = size_C(3);            
+    end
+    
+    dz = ceil(Z_sigma/2);
+    extent = max(s-dz,1):min(s+dz,limit);
+    
+    C = slice(C,extent,axis);
+    C = imgaussfilt3(C, sigma);
+    
+    I = C(:,:,1);
+end
+
+%% Postprocess methods -> modify an XY / XYZ image I
+
+function [I] = none(I)
 end

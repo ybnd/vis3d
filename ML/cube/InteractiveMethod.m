@@ -66,8 +66,12 @@ classdef InteractiveMethod < dynamicprops
            self.callback = callback; % todo: basic sanity checks 
         end
         
-        function out = do(self, in) % TODO: should handle nargin after 'in' by modifying self.current -> i.e. call slice.do(cube, 123) -> 123 to first parameter in self.current
-            % Call method with current parameter values
+        function out = do(self, in, varargin) % TODO: should handle nargin after 'in' by modifying self.current -> i.e. call slice.do(cube, 123) -> 123 to first parameter in self.current
+            % Call method with current parameter values     
+            for i = 1:numel(varargin)
+               self.current{i} = varargin{i}; 
+            end
+            
             out = self.methodh(self.expects(in), self.current{:});
         end
         
@@ -90,11 +94,16 @@ classdef InteractiveMethod < dynamicprops
             end
         end
         
-        function gui_handles = build_gui(self, figure, anchor, callback)
+        function gui_handles = build_gui(self, figure, anchor, callback, disabled_parameters)
             % Build own GUI at anchor in figure
             % ALSO: implement callbacks ~ this gui
             
             % TODO: handle string and numeric values, uicontrol('edit') vs uieditfield
+            
+            switch nargin
+                case 4
+                    disabled_parameters = {};               
+            end
             
             global gui
             if isempty(gui)
@@ -103,25 +112,42 @@ classdef InteractiveMethod < dynamicprops
             
             self.set_callback(callback);
             
-            gui_handles = cell(size(self.parname));      
-            parN = length(self.parname);
+            
+            
+            % Remove disabled parameters from self.parname
+            % https://nl.mathworks.com/matlabcentral/answers/298884-remove-cell-that-contains-strings-of-another-cell-array
+            
+            x = false(size(self.parname));
+            for k=1:numel(disabled_parameters)
+                x = x | strcmp(self.parname,disabled_parameters{k});
+            end
+            enabled_parameters = self.parname;
+            enabled_parameters(x) = [];
+            
+            gui_handles = cell(size(enabled_parameters));      
+            parN = length(enabled_parameters);
             gui_width = floor(gui.controls_max_width / parN);
             
-            for i = 1:parN                
-                if self.numeric(i)
-                    parameter_callback = @self.update_numeric_parameter;
-                else
-                    parameter_callback = @self.update_string_parameter;
+            k = 1;
+            for i = 1:length(self.parname)  
+                if any(strcmp(self.parname{i}, enabled_parameters))
+                    if self.numeric(i)
+                        parameter_callback = @self.update_numeric_parameter;
+                    else
+                        parameter_callback = @self.update_string_parameter;
+                    end
+
+                    gui_handles{i} = uicontrol( ...
+                        'Parent', figure, 'Style', 'edit', 'TooltipString', self.parname{i}, ...
+                        'FontSize', gui.fontsize, 'String', num2str(self.current{i}), ...
+                        'Callback', parameter_callback, ...
+                        'Position', [anchor(1)+(k-1)*(gui_width+gui.gap), anchor(2), gui_width, gui.height] ...
+                    );
+                    k = k+1;
+
+                    self.set_parameter_index(gui_handles{i}, i);
+%                     self.callback(); % todo: temporary, this is not a good idea if values for (source, event) are used!
                 end
-                
-                gui_handles{i} = uicontrol( ...
-                    'Parent', figure, 'Style', 'edit', 'TooltipString', self.parname{i}, ...
-                    'String', num2str(self.current{i}), 'Callback', parameter_callback, ...
-                    'Position', [anchor(1)+(i-1)*(gui_width+gui.gap), anchor(2), gui_width, gui.height] ...
-                );
-            
-                self.set_parameter_index(gui_handles{i}, i);
-                self.callback(); % todo: temporary, this is not a good idea if values for (source, event) are used!
             end
         end
         

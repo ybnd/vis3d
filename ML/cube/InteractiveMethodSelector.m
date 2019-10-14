@@ -6,6 +6,7 @@ classdef InteractiveMethodSelector < dynamicprops
         name
         items
         selected
+        disabled_parameters = {};
     end
     
     properties(Hidden=true)        
@@ -14,7 +15,6 @@ classdef InteractiveMethodSelector < dynamicprops
         gui_handle = false;
         controls = false;
         controls_anchor = false;
-        controls_callback = false;
     end
     
     methods(Access=public)
@@ -31,27 +31,36 @@ classdef InteractiveMethodSelector < dynamicprops
                 if ishandle(obj.figure)
                     obj.replace_controls(selected)
                 end
-                obj.controls_callback() % todo: temporary, this is not a good idea if values for (source, event) are used!
+                set(obj.gui_handle, 'Value', find(strcmp(fields(obj.items),item))) % Update UI (e.g. handle explicit calls 'from outside')
+                obj.callback() % todo: this is not a good idea if values for (source, event) are used!
             else
                 warning('Requested field %s does not exist.', item)
             end
         end
         
-        function gui_handle = build_gui(obj, figure, anchor, callback)
+        function gui_handle = build_gui(obj, figure, anchor, callback, disabled_parameters)
+            switch nargin
+                case 4
+                    disabled_parameters = {};               
+            end
+            
             global gui
             if isempty(gui)
                 interactive_methods;
             end
             
+            obj.disabled_parameters = disabled_parameters;
+            
             gui_handle = uicontrol( ...
-                'Parent', figure, 'Style', 'popupmenu', 'TooltipString', obj.name, 'String', fields(obj.items), ...
+                'Parent', figure, 'Style', 'popupmenu', 'TooltipString', obj.name, ...
+                'String', fields(obj.items), 'FontSize', gui.selector_fontsize, ...
                 'Position', [anchor(1), anchor(2), gui.selector_width, gui.height] ...
             );
             addlistener(gui_handle, 'Value', 'PostSet', @obj.gui_select_callback);
             obj.gui_handle = gui_handle;
             
             obj.figure = figure;
-            obj.controls_callback = callback;
+            obj.callback = callback;
             obj.controls_anchor = anchor + [gui.selector_width + gui.gap, 0];
             
             % Show controls for first InteractiveMethod by default
@@ -59,18 +68,27 @@ classdef InteractiveMethodSelector < dynamicprops
             obj.select(temp_items{1});
         end
         
-        function out = do(obj, in)
+        function out = do(obj, in, varargin)
             % Pass to selected InteractiveMethod
-            out = obj.selected.do(in);
+            try
+                out = obj.selected.do(in, varargin{:});
+            catch err
+               warning(err.message); 
+               out = in;
+            end
         end
     end
     
     methods(Access=protected)
         function replace_controls(obj, selected)
-            if ishandle(obj.controls)
-                delete(obj.controls);
+            try
+                for i = 1:numel(obj.controls)
+                   delete(obj.controls{i}); 
+                end
+            catch err
+                warning(err.message);
             end
-            obj.controls = selected.build_gui(obj.figure, obj.controls_anchor, obj.controls_callback);
+            obj.controls = selected.build_gui(obj.figure, obj.controls_anchor, obj.callback, obj.disabled_parameters);
             set(obj.gui_handle, 'UserData', selected);
         end
         

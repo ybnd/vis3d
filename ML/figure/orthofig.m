@@ -10,7 +10,9 @@ classdef orthofig < cubefig
         pad = [75 0 0 0]
         
         roaming = false;
-        
+       
+        slice = false;          % Placeholder for slice InteractiveMethodSelector
+        postprocess = false;    % Placeholder for postprocess InteractiveMethodSelector
         
         border = 5;     % border distance (v,h)
         w_img = 80;     % image controls width
@@ -21,7 +23,6 @@ classdef orthofig < cubefig
         histograms = struct('bins', 200);
         show_histograms = false;
         ui_histograms;
-        
     end
     
     methods 
@@ -126,6 +127,17 @@ classdef orthofig < cubefig
                 'ui_db_ceil', [self.border+self.w_db, self.border+1+20, self.w_img-self.w_db-1, 20]    ...
             );
             images = [self.image.XY.Parent, self.image.XZ.Parent, self.image.YZ.Parent];
+            
+            interactive_methods;
+            global im
+            global gui
+
+            self.slice = im.selectors.slice;
+            self.postprocess = im.selectors.postprocess;
+            
+            self.slice.build_gui(self.f, [self.border, 108], @self.ui_update_images, {'position', 'axis'});
+            self.postprocess.build_gui(self.f, [self.border, 108-gui.height-gui.gap], @self.ui_update_images);
+            self.postprocess.select('dBs')
         
             self.imagecontrol = postprocon(self, positions, @self.ui_update_images, images);
             
@@ -145,10 +157,15 @@ classdef orthofig < cubefig
                 'Position', [positions.ui_db(1), self.border, positions.ui_db(3), positions.ui_db(4)], ...
                 'Value', self.show_histograms, 'callback', @self.ui_toggle_histograms);
             
+               
+            
+            
+            
+            
             self.ui_update_images;
             self.place_overlay;
             self.ui_update_histograms;
-            set(self.f, 'visible', 'on')       
+            set(self.f, 'visible', 'on')    
         end    
     
     %% Callbacks
@@ -161,14 +178,17 @@ classdef orthofig < cubefig
             self.current_slice(3) = new_Z_slice;
             self.control.Z_text.String = sprintf('z(%d)',new_Z_slice);
             
-            self.image.temp.XY = self.slice_method(self.C,self.current_slice(3),'z',self.slice_args);           
-            
-            if self.do_db
-                self.image.temp.XY_db = dBs(self.image.temp.XY, self.noise_floor, self.signal_ceil);
-                self.image.XY.set('CData', rescale(self.image.temp.XY_db));
-            else
-                self.image.XY.set('CData', self.image.temp.XY);
-            end
+%             self.image.temp.XY = self.slice_method(self.C,self.current_slice(3),'z',self.slice_args);           
+%             
+%             if self.do_db
+%                 self.image.temp.XY_db = dBs(self.image.temp.XY, self.noise_floor, self.signal_ceil);
+%                 self.image.XY.set('CData', rescale(self.image.temp.XY_db));
+%             else
+%                 self.image.XY.set('CData', self.image.temp.XY);
+%             end
+
+            self.image.temp.XY = self.postprocess.do(self.slice.do(self.C, self.current_slice(3), 'z'));
+            self.image.XY.set('CData', rescale(self.image.temp.XY));
 
             self.place_overlay;
             self.ui_update_histograms;
@@ -180,14 +200,17 @@ classdef orthofig < cubefig
             self.current_slice(2) = new_Y_slice;
             self.control.Y_text.String = sprintf('y(%d)',new_Y_slice);
             
-            self.image.temp.XZ = self.slice_method(self.C,self.current_slice(2),'y',self.slice_args);         
+%             self.image.temp.XZ = self.slice_method(self.C,self.current_slice(2),'y',self.slice_args);         
+%             
+%             if self.do_db
+%                 self.image.temp.XZ_db = dBs(self.image.temp.XZ, self.noise_floor, self.signal_ceil);
+%                 self.image.XZ.set('CData', rescale(self.image.temp.XZ_db)); 
+%             else
+%                 self.image.XZ.set('CData', self.image.temp.XZ);
+%             end
             
-            if self.do_db
-                self.image.temp.XZ_db = dBs(self.image.temp.XZ, self.noise_floor, self.signal_ceil);
-                self.image.XZ.set('CData', rescale(self.image.temp.XZ_db)); 
-            else
-                self.image.XZ.set('CData', self.image.temp.XZ);
-            end
+            self.image.temp.XZ = self.postprocess.do(self.slice.do(self.C, self.current_slice(2), 'y'));
+            self.image.XZ.set('CData', rescale(self.image.temp.XZ));
             
             self.place_overlay;
             self.ui_update_histograms;
@@ -199,14 +222,17 @@ classdef orthofig < cubefig
             self.current_slice(1) = new_X_slice;
             self.control.X_text.String = sprintf('x(%d)', new_X_slice);
             
-            self.image.temp.YZ = self.slice_method(self.C,self.current_slice(1),'x',self.slice_args);            
-            
-            if self.do_db
-                self.image.temp.YZ_db = dBs(self.image.temp.YZ, self.noise_floor, self.signal_ceil);   
-                self.image.YZ.set('CData', rescale(self.image.temp.YZ_db));  
-            else
-                self.image.YZ.set('CData', self.image.temp.YZ);
-            end
+%             self.image.temp.YZ = self.slice_method(self.C,self.current_slice(1),'x',self.slice_args);            
+%             
+%             if self.do_db
+%                 self.image.temp.YZ_db = dBs(self.image.temp.YZ, self.noise_floor, self.signal_ceil);   
+%                 self.image.YZ.set('CData', rescale(self.image.temp.YZ_db));  
+%             else
+%                 self.image.YZ.set('CData', self.image.temp.YZ);
+%             end
+
+            self.image.temp.YZ = self.postprocess.do(self.slice.do(self.C, self.current_slice(1), 'x'));
+            self.image.YZ.set('CData', rescale(self.image.temp.YZ));
 
             self.place_overlay;
             self.ui_update_histograms;
@@ -371,23 +397,30 @@ classdef orthofig < cubefig
         end
         
         function ui_update_images(self)
+            self.image.temp.XY = self.postprocess.do(self.slice.do(self.C,self.current_slice(3),'z'));
+            self.image.temp.XZ = self.postprocess.do(self.slice.do(self.C,self.current_slice(2),'y'));
+            self.image.temp.YZ = self.postprocess.do(self.slice.do(self.C,self.current_slice(1),'x'));   
             
-            self.image.temp.XY = self.slice_method(self.C,self.current_slice(3),'z',self.slice_args);
-            self.image.temp.XZ = self.slice_method(self.C,self.current_slice(2),'y',self.slice_args);
-            self.image.temp.YZ = self.slice_method(self.C,self.current_slice(1),'x',self.slice_args);            
+            self.image.XY.set('CData', rescale(self.image.temp.XY));
+            self.image.XZ.set('CData', rescale(self.image.temp.XZ));
+            self.image.YZ.set('CData', rescale(self.image.temp.YZ));
             
-            if self.do_db
-                self.image.temp.XY_db = dBs(self.image.temp.XY, self.noise_floor, self.signal_ceil);
-                self.image.temp.XZ_db = dBs(self.image.temp.XZ, self.noise_floor, self.signal_ceil);
-                self.image.temp.YZ_db = dBs(self.image.temp.YZ, self.noise_floor, self.signal_ceil);   
-                self.image.XY.set('CData', rescale(self.image.temp.XY_db));
-                self.image.XZ.set('CData', rescale(self.image.temp.XZ_db));
-                self.image.YZ.set('CData', rescale(self.image.temp.YZ_db));  
-            else
-                self.image.XY.set('CData', self.image.temp.XY);
-                self.image.XZ.set('CData', self.image.temp.XZ);
-                self.image.YZ.set('CData', self.image.temp.YZ);
-            end
+%             self.image.temp.XY = self.slice_method(self.C,self.current_slice(3),'z',self.slice_args);
+%             self.image.temp.XZ = self.slice_method(self.C,self.current_slice(2),'y',self.slice_args);
+%             self.image.temp.YZ = self.slice_method(self.C,self.current_slice(1),'x',self.slice_args); 
+            
+%             if self.do_db
+%                 self.image.temp.XY_db = dBs(self.image.temp.XY, self.noise_floor, self.signal_ceil);
+%                 self.image.temp.XZ_db = dBs(self.image.temp.XZ, self.noise_floor, self.signal_ceil);
+%                 self.image.temp.YZ_db = dBs(self.image.temp.YZ, self.noise_floor, self.signal_ceil);   
+%                 self.image.XY.set('CData', rescale(self.image.temp.XY_db));
+%                 self.image.XZ.set('CData', rescale(self.image.temp.XZ_db));
+%                 self.image.YZ.set('CData', rescale(self.image.temp.YZ_db));  
+%             else
+%                 self.image.XY.set('CData', self.image.temp.XY);
+%                 self.image.XZ.set('CData', self.image.temp.XZ);
+%                 self.image.YZ.set('CData', self.image.temp.YZ);
+%             end
         end    
         
         function ui_update_histograms(self)            
