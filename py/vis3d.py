@@ -31,6 +31,10 @@ def string_to_np_dtype(dtype: str) -> Type[np.dtype]:
         return np.uint32
 
 
+def mfmt_string_to_np_byteorder(mfmt: str) -> str:
+    pass
+
+
 def downscale_u32_u8(image: np.ndarray, factor: float = 1.0) -> np.ndarray:
     image = image.astype(np.double)
     image = np.multiply(np.divide(image, np.max(image)*factor), 255)
@@ -133,5 +137,5 @@ class tifCube(Cube):
 
 class thorCube(Cube):
     def load_data(self):
-        """  """
+        """ Load from Thorlabs .oct file (.zip container with XML, images & raw data) """
         pass
