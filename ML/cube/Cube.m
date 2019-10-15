@@ -11,11 +11,6 @@ Description:
         * ...
     - Optional metadata in self.meta
 
-
-    - In the context of this class, 'processing' refers to anything you do to self.cube or self.data manually 
-      in scripts or the MATLAB commandline, and 'post-processing' refers to processing routines defined in the 
-      properties below (see CubePostprocess class for further info)
-
     
 File format & i/o:
 ==================

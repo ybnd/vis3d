@@ -38,6 +38,15 @@ classdef InteractiveMethodSelector < dynamicprops
             end
         end
         
+        function set(obj, parameter, value)
+            % Set parameter to value for all InteractiveMethods in obj.items
+            options = fields(obj.items);
+            for i = 1:length(options)
+                item = obj.items.(options{i});
+                item.set(parameter, value);
+            end
+        end
+        
         function gui_handle = build_gui(obj, figure, anchor, callback, disabled_parameters)
             switch nargin
                 case 4

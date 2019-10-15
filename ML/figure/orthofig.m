@@ -91,8 +91,9 @@ classdef orthofig < cubefig
             self.postprocess = im.selectors.postprocess;
             
             self.slice.build_gui(self.f, [self.border, 47], @self.ui_update_images, {'position', 'axis'});
-            self.postprocess.build_gui(self.f, [self.border, 47-gui.height-gui.gap], @self.ui_update_images);
-            self.postprocess.select('dBs')
+            self.postprocess.build_gui(self.f, [self.border, 47-gui.height-gui.gap], @self.ui_update_images, {'global range'});
+            self.postprocess.select('dBs_global');
+            self.postprocess.set('global range', self.range);
             
             
 
@@ -197,7 +198,7 @@ classdef orthofig < cubefig
 
             self.image.temp.rawXY = self.slice.do(self.C,self.current_slice(3),'z');
             self.image.temp.XY = self.postprocess.do(self.image.temp.rawXY);
-            self.image.XY.set('CData', self.rescale(self.image.temp.XY));
+            self.image.XY.set('CData',self.image.temp.XY);
 
             self.place_overlay;
             self.ui_update_histograms;
@@ -220,7 +221,7 @@ classdef orthofig < cubefig
             
             self.image.temp.rawXZ = self.slice.do(self.C,self.current_slice(2),'y');
             self.image.temp.XZ = self.postprocess.do(self.image.temp.rawXZ);
-            self.image.XZ.set('CData', self.rescale(self.image.temp.XZ));
+            self.image.XZ.set('CData', self.image.temp.XZ);
             
             self.place_overlay;
             self.ui_update_histograms;
@@ -243,7 +244,7 @@ classdef orthofig < cubefig
 
             self.image.temp.rawYZ = self.slice.do(self.C,self.current_slice(1),'x');
             self.image.temp.YZ = self.postprocess.do(self.image.temp.rawYZ);   
-            self.image.YZ.set('CData', self.rescale(self.image.temp.YZ));
+            self.image.YZ.set('CData', self.image.temp.YZ);
 
             self.place_overlay;
             self.ui_update_histograms;
@@ -407,11 +408,6 @@ classdef orthofig < cubefig
             self.place_overlay
         end
         
-        function I = rescale(self, I)
-            % Rescale image to [0,1] based on global minimum / maximum
-            I = rescale((I - self.postprocess.do(self.range(1))) / self.postprocess.do((self.range(2) - self.range(1))));
-        end
-        
         function ui_update_images(self)
             self.image.temp.rawXY = self.slice.do(self.C,self.current_slice(3),'z');
             self.image.temp.rawXZ = self.slice.do(self.C,self.current_slice(2),'y');
@@ -420,9 +416,9 @@ classdef orthofig < cubefig
             self.image.temp.XZ = self.postprocess.do(self.image.temp.rawXZ);
             self.image.temp.YZ = self.postprocess.do(self.image.temp.rawYZ);   
             
-            self.image.XY.set('CData', self.rescale(self.image.temp.XY));
-            self.image.XZ.set('CData', self.rescale(self.image.temp.XZ));
-            self.image.YZ.set('CData', self.rescale(self.image.temp.YZ));
+            self.image.XY.set('CData', self.image.temp.XY);
+            self.image.XZ.set('CData', self.image.temp.XZ);
+            self.image.YZ.set('CData', self.image.temp.YZ);
             
             self.ui_update_histograms;
             
