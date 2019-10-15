@@ -32,7 +32,7 @@ classdef InteractiveMethodSelector < dynamicprops
                     obj.replace_controls(selected)
                 end
                 set(obj.gui_handle, 'Value', find(strcmp(fields(obj.items),item))) % Update UI (e.g. handle explicit calls 'from outside')
-                obj.callback() % todo: this is not a good idea if values for (source, event) are used!
+                obj.callback() % todo: this may not be a good idea if values for (source, event) are actually used!
             else
                 warning('Requested field %s does not exist.', item)
             end
@@ -82,6 +82,7 @@ classdef InteractiveMethodSelector < dynamicprops
             try
                 out = obj.selected.do(in, varargin{:});
             catch err
+               % todo: Try not to even 'try' this when GUI not built completely yet?
                warning(err.message); 
                out = in;
             end
@@ -95,6 +96,7 @@ classdef InteractiveMethodSelector < dynamicprops
                    delete(obj.controls{i}); 
                 end
             catch err
+                % todo: Try not to even 'try' this when GUI not buily completely yet?
                 warning(err.message);
             end
             obj.controls = selected.build_gui(obj.figure, obj.controls_anchor, obj.callback, obj.disabled_parameters);
