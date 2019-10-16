@@ -48,19 +48,127 @@ File format & i/o:
     
     end
     
-    methods(Access = public)
-        function check_path(obj)
-            if ~isfile(obj.path) && ~isfile(sprintf('%s.json', obj.path)) && ~isempty(obj.path)
-                error('File does not exist: %s', obj.path);
+    %% Initialization
+    methods
+        function obj = Cube(path, do_load)
+            switch nargin
+                case 0
+                    path = '';
+                    do_load = false;
+                case 1
+                    do_load = true;
             end
-        end
-        
+
+            % Cast path to char
+            obj.path = char(path);
+            
+            obj.check_path
+            
+            obj.im = interactive_methods;
+            
+            if do_load
+                obj.load_data
+            end
+        end    
+    end
+    
+    %% File I/O methods    
+    methods(Access = public)        
         function sobj = saveobj(obj)
             sobj = obj;  
             sobj.unload_data()                              
         end
+               
+        function save(obj, fmt, process, path, options)
+            switch nargin
+                case 1
+                    fmt = ''; process = @pass_data; path = ''; options = struct();
+                case 2
+                    process = @pass_data; path = ''; options = struct();
+                case 3
+                    path = ''; options = struct();
+                case 4
+                    options = struct();
+            end
+            
+            switch lower(fmt)
+                case {'tif', 'tiff'}
+                    tempCube = tifCube(obj.path, false);
+                case {'', '.cube', '.json'}
+                    tempCube = Cube(obj.path, false);
+            end
+
+            try
+                tempCube.cube = process(obj.cube);
+            catch err
+                warning(err.identifier, '%s', err.message);
+            end
+            tempCube.save_data(path, options);
+        end
         
+        function load_data(obj)  % todo: refactor everything to load / unload!
+            [folder, file, ~] = fileparts(obj.path);            
+            header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));
+            
+            obj.name = header.name; obj.desc = header.desc; obj.meta = header.meta;
+            
+            for i = 1:length(header.data)
+                try
+                    d = header.data{i};
+                catch
+                    d = header.data;
+                end
+                if isfield(d,'name') && isfield(d,'data')
+                    obj.data.(d.name) = d.data;
+                elseif isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
+                    fid = fopen([folder '/' d.path], 'rb+');
+                    
+                    try
+                        machinefmt = d.mfmt;
+                    catch err
+                        warning(err.message)
+                        sprintf('Default machinefmt: %s', obj.mfmt);
+                        machinefmt = obj.mfmt;
+                    end
+                    
+                    switch lower(machinefmt)
+                        case {'little-endian', 'le', 'ieee-le'}
+                            machinefmt = 'ieee-le';
+                        case {'big-endian', 'be', 'ieee-be'}
+                    end
+                    
+                    A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
+                    fclose(fid);
+                    A = reshape(A, d.size');
+                    
+                    switch d.name
+                        case 'cube'
+                            obj.cube = A;
+                        otherwise
+                            obj.data.A = A;
+                    end                    
+                elseif length(fields(d)) == 1
+                    dfields = fields(d);
+                    obj.data.(dfields{1}) = d.(dfields{1});
+                else
+                    warning('Unrecognized specification for data field %s', d);                    
+                end
+            end            
+        end        
         
+        function unload_data(obj)   % todo: refactor everything to load / unload!
+            % Flush data from memory, but keep the interface & metadata
+            if obj.is_loaded
+                obj.cube = zeros(1,1,1);
+                obj.data = {};
+                close(obj.figures)
+                
+                obj.is_loaded = false;
+            end
+        end
+    end
+    
+    methods(Access = protected)
         
         function save_data(obj, path, options)
             switch nargin
@@ -141,79 +249,42 @@ File format & i/o:
                 fclose(fid);    
             end
         end
+        
+        function [do_save, path, options] = resolve_save(obj, path, options)
+            do_save = true;
+            
+            switch nargin
+                case 1
+                    path = '';
+                    options = struct();
+                case 2
+                    options = struct();
+            end
+            
+            if isempty(path)
+                    path = remove_extension(obj.path);
+            end
+            
+            if exist(path, 'file') == 2
+                switch lower(input('Overwrite file? (y/n) \n', 's'))
+                    case {'y', 't', '1'}
+                        do_save = true;
+                    case {'n', 'f', '0'}      
+                        do_save = false;
+                end
+            end
+        end
+        
+        function check_path(obj)
+            if ~isfile(obj.path) && ~isfile(sprintf('%s.json', obj.path)) && ~isempty(obj.path)
+                error('File does not exist: %s', obj.path);
+            end
+        end
     end
     
-    methods
-        function obj = Cube(path, do_load)
-            switch nargin
-                case 0
-                    path = '';
-                    do_load = false;
-                case 1
-                    do_load = true;
-            end
-
-            % Cast path to char
-            obj.path = char(path);
-            
-            obj.check_path
-            
-            obj.im = interactive_methods;
-            
-            if do_load
-                obj.load_data
-            end
-        end        
-             
-        function unload(obj)   % todo: refactor everything to load / unload!
-            % Flush data from memory, but keep the interface & metadata
-            if obj.is_loaded
-                obj.cube = zeros(1,1,1);
-                obj.data = {};
-                close(obj.figures)
-                
-                obj.is_loaded = false;
-            end
-        end
-        
-        function unload_data(obj)
-           obj.unload(); 
-        end
-        
-        function z = position(obj)
-            z = obj.data.zpos;
-        end
-        
-        function z = zpos(obj)
-            if isfield(obj.data, 'zpos')
-                z = obj.data.zpos;
-            else
-                [~,~,Nz] = size(obj.cube);
-                z = 1:Nz;
-            end
-        end
-        
-        function zprof(obj, loc, do_fwhm)
-            % Interactive z-profile window
-            % todo: doesn't work anymore
-            switch nargin 
-                case 1
-                    loc = floor(length(obj.zpos/2));
-                    do_fwhm = true;
-                case 2
-                    do_fwhm = true;
-            end
-           
-            live_A_scan(obj.cube, loc, obj.zpos, 5, 1, do_fwhm, false);
-        end
-        
-        function [slice, raw_slice] = slice(obj, k, axis)
-            % todo: this will probably break if GUI is not initialized!
-            raw_slice = obj.im.selectors.slice.selected.do(obj.cube, k, axis);
-            slice = obj.im.selectors.postprocess.selected.do(raw_slice);
-        end
-        
-        function of = ortho(obj, M, z)
+    %% High-level interface to Cube data
+    methods(Access=public)
+        function of = of(obj, M, z)
             %{ 
                 Orthographic views of the cube
                     Scan over z: Scroll
@@ -248,6 +319,35 @@ File format & i/o:
             of = orthofig(obj, f, M, z);
         end
         
+        function sf = sf(self, plane, M, f)
+            % Slice display (scroll to scan through the cube)
+            switch nargin
+                case 1
+                    plane = 'XY';
+                    M = 100;
+                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
+                    self.figures = [self.figures, f];
+                case 2
+                    M = 100;
+                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
+                    self.figures = [self.figures, f];
+                case 3
+                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
+                    self.figures = [self.figures, f];
+            end
+            
+            switch lower(plane)
+                case {'xz', 'zx'}
+                    slice_axis = 'y';
+                case {'yz', 'zy'}
+                    slice_axis = 'x';
+                otherwise
+                    slice_axis = 'z';
+            end
+  
+            sf = slicefig(self, f, M, slice_axis); % todo: should have same contrast stuff as ortho...
+        end
+        
         function explore(obj)
             % Open the folder containing current file in explorer
             path_parts = strsplit(obj.path, '/');
@@ -260,106 +360,40 @@ File format & i/o:
             end
         end
         
-        function load_data(obj)  % todo: refactor everything to load / unload!
-            [folder, file, ~] = fileparts(obj.path);            
-            header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));
-            
-            obj.name = header.name; obj.desc = header.desc; obj.meta = header.meta;
-            
-            for i = 1:length(header.data)
-                try
-                    d = header.data{i};
-                catch
-                    d = header.data;
-                end
-                if isfield(d,'name') && isfield(d,'data')
-                    obj.data.(d.name) = d.data;
-                elseif isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
-                    fid = fopen([folder '/' d.path], 'rb+');
-                    
-                    try
-                        machinefmt = d.mfmt;
-                    catch err
-                        warning(err.message)
-                        sprintf('Default machinefmt: %s', obj.mfmt);
-                        machinefmt = obj.mfmt;
-                    end
-                    
-                    switch lower(machinefmt)
-                        case {'little-endian', 'le', 'ieee-le'}
-                            machinefmt = 'ieee-le';
-                        case {'big-endian', 'be', 'ieee-be'}
-                    end
-                    
-                    A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
-                    fclose(fid);
-                    A = reshape(A, d.size');
-                    
-                    switch d.name
-                        case 'cube'
-                            obj.cube = A;
-                        otherwise
-                            obj.data.A = A;
-                    end                    
-                elseif length(fields(d)) == 1
-                    dfields = fields(d);
-                    obj.data.(dfields{1}) = d.(dfields{1});
-                else
-                    warning('Unrecognized specification for data field %s', d);                    
-                end
-            end            
+        function zprof(obj, loc, do_fwhm)
+            % Interactive z-profile window
+            % todo: doesn't work anymore
+            switch nargin 
+                case 1
+                    loc = floor(length(obj.zpos/2));
+                    do_fwhm = true;
+                case 2
+                    do_fwhm = true;
+            end
+           
+            live_A_scan(obj.cube, loc, obj.zpos, 5, 1, do_fwhm, false);
+        end
+    end
+    
+    %% Lower-level interface to Cube data
+    methods(Access=public)               
+        function z = position(obj)
+            z = obj.data.zpos;
         end
         
-        function [do_save, path, options] = resolve_save(obj, path, options)
-            do_save = true;
-            
-            switch nargin
-                case 1
-                    path = '';
-                    options = struct();
-                case 2
-                    options = struct();
-            end
-            
-            if isempty(path)
-                    path = remove_extension(obj.path);
-            end
-            
-            if exist(path, 'file') == 2
-                switch lower(input('Overwrite file? (y/n) \n', 's'))
-                    case {'y', 't', '1'}
-                        do_save = true;
-                    case {'n', 'f', '0'}      
-                        do_save = false;
-                end
+        function z = zpos(obj)
+            if isfield(obj.data, 'zpos')
+                z = obj.data.zpos;
+            else
+                [~,~,Nz] = size(obj.cube);
+                z = 1:Nz;
             end
         end
         
-        function save(obj, fmt, process, path, options)
-            switch nargin
-                case 1
-                    fmt = ''; process = @pass_data; path = ''; options = struct();
-                case 2
-                    process = @pass_data; path = ''; options = struct();
-                case 3
-                    path = ''; options = struct();
-                case 4
-                    options = struct();
-            end
-            
-            switch lower(fmt)
-                case {'tif', 'tiff'}
-                    tempCube = tifCube(obj.path, false);
-                case {'', '.cube', '.json'}
-                    tempCube = Cube(obj.path, false);
-            end
-
-            try
-                tempCube.cube = process(obj.cube);
-            catch err
-                warning(err.identifier, '%s', err.message);
-            end
-            tempCube.save_data(path, options);
+        function [slice, raw_slice] = slice(obj, k, axis)
+            % todo: this will probably break if GUI is not initialized!
+            raw_slice = obj.im.selectors.slice.selected.do(obj.cube, k, axis);
+            slice = obj.im.selectors.postprocess.selected.do(raw_slice);
         end
     end
 end

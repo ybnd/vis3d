@@ -1,6 +1,7 @@
 classdef slicefig < cubefig
     properties   
         current_slice = 1;
+        slice_axis = 'z'
     end
     
     properties (Access = private)
@@ -8,31 +9,24 @@ classdef slicefig < cubefig
     end
     
     methods
-        function obj = slicefig(C, fig, slice_method, slice_args, M)
+        function obj = slicefig(C, fig, M, slice_axis)
             switch nargin
                 case 1
                     fig = figure;
-                    slice_method = @normalize_slice;
-                    slice_args = struct();
                     M = 100;
+                    axis = 'z';
                 case 2
-                    slice_method = @normalize_slice;
-                    slice_args = struct();
                     M = 100;
+                    axis = 'z';
                 case 3
-                    slice_args = struct();
-                    M = 100;
-                case 4
-                    M = 100;
+                    axis = 'z';
             end
             
             obj.C = C;
             obj.M = M;
+            obj.slice_axis = slice_axis;
             
             obj.f = fig;
-            
-            obj.slice_method = slice_method;
-            obj.slice_args = slice_args;
             
             obj = obj.build;
         end
@@ -42,16 +36,22 @@ classdef slicefig < cubefig
             
             % Image display
             if isempty(fields(obj.image))
-                obj.image.XY = imshow_tight(                                       ...
-                    obj.slice_method(obj.C,obj.current_slice,'z',obj.slice_args),   ...
-                    obj.M, obj.pad                                                ...
-                );
+                [I,~] = obj.C.slice(obj.current_slice, obj.slice_axis);
+                obj.image = imshow_tight(I, obj.M, obj.pad);
 
 %                 aXY = copyobj(obj.image.XY.Parent, obj.f); cla(aXY);
 %                 set(obj.f, 'CurrentAxes', aXY); 
 %                 aXY.DataAspectRatio = obj.image.XY.Parent.DataAspectRatio;
 
-                [~,~,Nz] = size(obj.C);
+                switch obj.slice_axis
+                    case 'x'
+                        [N,~,~] = size(obj.C.cube);
+                    case 'y'
+                        [~,N,~] = size(obj.C.cube);
+                    case 'z'
+                        [~,~,N] = size(obj.C.cube);
+                end
+                
                 ap = get(gca, 'Position');            
 
                 % Slice 'scanning' controls
@@ -61,8 +61,8 @@ classdef slicefig < cubefig
 
                 obj.control.ui_slider = uicontrol('style', 'slider', ...
                 'Position', [55,5,ap(3)-58,20] ,...
-                'Value', obj.current_slice, 'min', 1, 'max', Nz, ...
-                'SliderStep', [1/Nz, 1/Nz] ...
+                'Value', obj.current_slice, 'min', 1, 'max', N, ...
+                'SliderStep', [1/N, 1/N] ...
                 );
                 addlistener(obj.control.ui_slider, 'Value', 'PostSet', @obj.slider_callback);
 
@@ -81,7 +81,9 @@ classdef slicefig < cubefig
             obj.current_slice = floor(get(eventdata.AffectedObject, 'Value'));
             eventdata.AffectedObject.Parent.UserData = obj.current_slice;
             obj.control.ui_text.String = sprintf('z(%d)',obj.current_slice);
-            obj.image.XY.set('CData', obj.slice_method(obj.C, obj.current_slice, 'z', obj.slice_args));
+            
+            [I,~] = obj.C.slice(obj.current_slice, obj.slice_axis);
+            obj.image.set('CData', I);
         end
         
         function scroll_callback(obj, ~, eventdata)
@@ -96,12 +98,12 @@ classdef slicefig < cubefig
         end
         
         function rh = imrect(obj)
-            axis(obj.image.XY.Parent);
+            axis(obj.image.Parent);
             rh = imrect();
         end
         
         function ax = get_XY_axis(obj)
-            ax = obj.image.XY.Parent;
+            ax = obj.image.Parent;
         end
         end
 end

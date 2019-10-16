@@ -18,7 +18,11 @@ classdef ocmCube < Cube
         dtype = '*uint32';
     end
     
-    methods            
+ 
+    
+    %% File I/O methods
+    
+    methods(Access = public)            
         function load_data(obj)
             if ~obj.is_loaded
                 full_read = tic;            
@@ -42,7 +46,7 @@ classdef ocmCube < Cube
                 obj.is_loaded = true;
             end
         end
-    end   
+    end  
     
     methods(Access = private)
         function parseMetadata(obj)      

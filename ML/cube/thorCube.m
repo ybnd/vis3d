@@ -7,7 +7,8 @@ classdef thorCube < Cube
         dz                                                        % Axial step (nm / px)
     end
     
-    methods
+    %% File I/O methods
+    methods(Access = public)
         function load_data(obj)          
             if ~obj.is_loaded
                 if isempty(fields(obj.h))
@@ -47,15 +48,16 @@ classdef thorCube < Cube
         
         function unload_data(obj)
             if obj.is_loaded
-                obj.h = struct();
+                obj.h = struct();   % Let go of handle to .oct file
                 unload_data@Cube(obj)
             end
         end
-        
+    end
+    %% High-level interface to thorCube data
+    methods(Access = public)
         function preview(obj)
             figure('Name', sprintf('%s - preview image', obj.name));
             imshow_tight(obj.data.preview_image);
         end
     end
 end
-

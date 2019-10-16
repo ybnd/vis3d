@@ -3,6 +3,7 @@ classdef tifCube < Cube
         files
     end
     
+    %% File I/O methods
     methods(Access = public)
         function load_data(obj)
             % Requires 'Multipage TIFF stack' to be in the MATLAB path
