@@ -14,12 +14,12 @@ classdef slicefig < cubefig
                 case 1
                     fig = figure;
                     M = 100;
-                    axis = 'z';
+                    slice_axis = 'z';
                 case 2
                     M = 100;
-                    axis = 'z';
+                    slice_axis = 'z';
                 case 3
-                    axis = 'z';
+                    slice_axis = 'z';
             end
             
             obj.C = C;
@@ -57,7 +57,7 @@ classdef slicefig < cubefig
                 % Slice 'scanning' controls
                 obj.control.ui_text = uicontrol('style', 'text', ...
                 'Position', [5,3,45,20], ...
-                'String', sprintf('z(%d)', obj.current_slice));
+                'String', sprintf('%s(%d)', obj.slice_axis, obj.current_slice));
 
                 obj.control.ui_slider = uicontrol('style', 'slider', ...
                 'Position', [55,5,ap(3)-58,20] ,...
@@ -80,7 +80,7 @@ classdef slicefig < cubefig
         function slider_callback(obj, ~, eventdata)
             obj.current_slice = floor(get(eventdata.AffectedObject, 'Value'));
             eventdata.AffectedObject.Parent.UserData = obj.current_slice;
-            obj.control.ui_text.String = sprintf('z(%d)',obj.current_slice);
+            obj.control.ui_text.String = sprintf('%s(%d)', obj.slice_axis, obj.current_slice);
             
             [I,~] = obj.C.slice(obj.current_slice, obj.slice_axis);
             obj.image.set('CData', I);
