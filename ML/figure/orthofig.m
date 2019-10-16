@@ -22,7 +22,7 @@ classdef orthofig < cubefig
         w_lab = 40;     % axis control label width
         w_db = 82;      % width of db button
         
-        histograms = struct('bins', 200);
+        histograms = struct('bins', 200, 'samples', 50000);
         show_histograms = false;
         ui_histograms;
     end
@@ -477,8 +477,10 @@ classdef orthofig < cubefig
 
                 axes(self.histograms.axes.XY);
                 
-                self.histograms.XY = histogram(self.image.temp.XY, self.histograms.bins, ...
-                        'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5);
+                self.histograms.XY = histogram( ...
+                    self.image.temp.XY(randi(numel(self.image.temp.XY),self.histograms.samples,1)), ...
+                    self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
+                );
 %                 hold on
 %                 histogram(self.image.temp.rawXY, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
 %                 hold off
@@ -491,8 +493,10 @@ classdef orthofig < cubefig
 
                 axes(self.histograms.axes.XZ);
                 
-                self.histograms.XY = histogram(self.image.temp.XZ, self.histograms.bins, ...
-                        'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5);
+                self.histograms.XZ = histogram( ...
+                    self.image.temp.XZ(randi(numel(self.image.temp.XZ),self.histograms.samples,1)), ...
+                    self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
+                );
 %                 hold on
 %                 histogram(self.image.temp.rawXZ, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
 %                 hold off
@@ -505,8 +509,10 @@ classdef orthofig < cubefig
 
                 axes(self.histograms.axes.YZ);
                 
-                self.histograms.XY = histogram(self.image.temp.YZ, self.histograms.bins, ...
-                        'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5);
+                self.histograms.XY = histogram( ...
+                    self.image.temp.YZ(randi(numel(self.image.temp.YZ),self.histograms.samples,1)), ...
+                    self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
+                );
 %                 hold on
 %                 histogram(self.image.temp.rawYZ, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
 %                 hold off
