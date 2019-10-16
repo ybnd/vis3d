@@ -260,12 +260,8 @@ File format & i/o:
                 case 1
                     M = NaN;  % todo: triggers the following if statement (ugly ugh)
                     z = NaN;     
-                    slice_method = @slice;
                 case 2
                     z = NaN;
-                    slice_method = @slice;
-                case 3
-                    slice_method = @slice;
             end
             
             if isnan(M) && isnan(z)
@@ -284,7 +280,7 @@ File format & i/o:
             f = figure('Name', self.name, 'visible', 'off');
             self.figures = [self.figures, f];
             
-            of = orthofig(self, f, M, z, slice_method);
+            of = orthofig(self, f, M, z);
         end
         
         function explore(self)

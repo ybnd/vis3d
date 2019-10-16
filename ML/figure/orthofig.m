@@ -28,22 +28,17 @@ classdef orthofig < cubefig
     end
     
     methods 
-        function self = orthofig(C, fig, M, z_ratio, slice_method)
+        function self = orthofig(C, fig, M, z_ratio)
             switch nargin
                 case 1
                     fig = figure;
                     M = 0.3;
                     z_ratio = 2;
-                    slice_method = @slice;
                 case 2
                     M = [560 420];
                     z_ratio = 2;
-                    slice_method = @slice;
                 case 3
                     z_ratio = 2;
-                    slice_method = @slice;
-                case 4
-                    slice_method = @slice;
             end
             
             self.C = C;
@@ -57,8 +52,6 @@ classdef orthofig < cubefig
             else
                 self.z_ratio = 1;
             end
-            
-            self.slice_method = slice_method;
             
             self.range = [rmin(C.cube), rmax(C.cube)];
             self.build;
@@ -142,9 +135,6 @@ classdef orthofig < cubefig
                 'ui_db_ceil', [self.border+self.w_db, self.border+1+20, self.w_img-self.w_db-1, 20]    ...
             );
             
-        
-%             self.imagecontrol = postprocon(self, positions, @self.ui_update_images, images);
-            
             dfpos = [0 0 self.pad(3)+self.pad(4) self.pad(1)+self.pad(2)];
             dhpos = [self.pad(3) self.pad(1) 0 0];
 
@@ -178,18 +168,6 @@ classdef orthofig < cubefig
             new_Z_slice = floor(get(eventdata.AffectedObject, 'Value'));
             self.current_slice(3) = new_Z_slice;
             self.control.Z_text.String = sprintf('z(%d)',new_Z_slice);
-            
-%             self.image.temp.XY = self.slice_method(self.C,self.current_slice(3),'z',self.slice_args);           
-%             
-%             if self.do_db
-%                 self.image.temp.XY_db = dBs(self.image.temp.XY, self.noise_floor, self.signal_ceil);
-%                 self.image.XY.set('CData', rescale(self.image.temp.XY_db));
-%             else
-%                 self.image.XY.set('CData', self.image.temp.XY);
-%             end
-
-%             self.image.temp.rawXY = self.slice.do(self.C,self.current_slice(3),'z');
-%             self.image.temp.XY = self.postprocess.do(self.image.temp.rawXY);
 
             [self.image.temp.XY, self.image.temp.rawXY] = self.C.slice(self.current_slice(3),'z');
             self.image.XY.set('CData',self.image.temp.XY);
@@ -203,18 +181,6 @@ classdef orthofig < cubefig
             new_Y_slice = floor(get(eventdata.AffectedObject, 'Value'));
             self.current_slice(2) = new_Y_slice;
             self.control.Y_text.String = sprintf('y(%d)',new_Y_slice);
-            
-%             self.image.temp.XZ = self.slice_method(self.C,self.current_slice(2),'y',self.slice_args);         
-%             
-%             if self.do_db
-%                 self.image.temp.XZ_db = dBs(self.image.temp.XZ, self.noise_floor, self.signal_ceil);
-%                 self.image.XZ.set('CData', rescale(self.image.temp.XZ_db)); 
-%             else
-%                 self.image.XZ.set('CData', self.image.temp.XZ);
-%             end
-%             
-%             self.image.temp.rawXZ = self.slice.do(self.C,self.current_slice(2),'y');
-%             self.image.temp.XZ = self.postprocess.do(self.image.temp.rawXZ);
                         
             [self.image.temp.XZ, self.image.temp.rawXZ] = self.C.slice(self.current_slice(2),'y');
             self.image.XZ.set('CData', self.image.temp.XZ);
@@ -228,18 +194,6 @@ classdef orthofig < cubefig
             new_X_slice = floor(get(eventdata.AffectedObject, 'Value'));
             self.current_slice(1) = new_X_slice;
             self.control.X_text.String = sprintf('x(%d)', new_X_slice);
-            
-%             self.image.temp.YZ = self.slice_method(self.C,self.current_slice(1),'x',self.slice_args);            
-%             
-%             if self.do_db
-%                 self.image.temp.YZ_db = dBs(self.image.temp.YZ, self.noise_floor, self.signal_ceil);   
-%                 self.image.YZ.set('CData', rescale(self.image.temp.YZ_db));  
-%             else
-%                 self.image.YZ.set('CData', self.image.temp.YZ);
-%             end
-
-%             self.image.temp.rawYZ = self.slice.do(self.C,self.current_slice(1),'x');
-%             self.image.temp.YZ = self.postprocess.do(self.image.temp.rawYZ);   
             
             [self.image.temp.YZ, self.image.temp.rawYZ] = self.C.slice(self.current_slice(1),'x');
             self.image.YZ.set('CData', self.image.temp.YZ);
@@ -384,10 +338,6 @@ classdef orthofig < cubefig
         
         function ui_toggle_histograms(self, ~, eventdata)       
             self.show_histograms = eventdata.Source.Value;
-
-            if self.show_histograms
-               self.ui_update_histograms 
-            end 
             
             if any(strcmp(fieldnames(self.histograms), 'axes'))
                 for axis = [self.histograms.axes.XY, self.histograms.axes.XZ, self.histograms.axes.YZ]
@@ -395,6 +345,10 @@ classdef orthofig < cubefig
                     set(get(axis, 'Children'), 'Visible', self.show_histograms);
                 end
             end
+            
+            if self.show_histograms
+               self.ui_update_histograms 
+            end 
         end        
     end
     
@@ -407,13 +361,6 @@ classdef orthofig < cubefig
         end
         
         function ui_update_images(self)
-%             self.image.temp.rawXY = self.slice.do(self.C,self.current_slice(3),'z');
-%             self.image.temp.rawXZ = self.slice.do(self.C,self.current_slice(2),'y');
-%             self.image.temp.rawYZ = self.slice.do(self.C,self.current_slice(1),'x');
-%             self.image.temp.XY = self.postprocess.do(self.image.temp.rawXY);
-%             self.image.temp.XZ = self.postprocess.do(self.image.temp.rawXZ);
-%             self.image.temp.YZ = self.postprocess.do(self.image.temp.rawYZ);
-
             [self.image.temp.XY, self.image.temp.rawXY] = self.C.slice(self.current_slice(3),'z');
             [self.image.temp.XZ, self.image.temp.rawXZ] = self.C.slice(self.current_slice(2),'y');
             [self.image.temp.YZ, self.image.temp.rawYZ] = self.C.slice(self.current_slice(1),'x');
@@ -422,24 +369,7 @@ classdef orthofig < cubefig
             self.image.XZ.set('CData', self.image.temp.XZ);
             self.image.YZ.set('CData', self.image.temp.YZ);
             
-            self.ui_update_histograms;
-            
-%             self.image.temp.XY = self.slice_method(self.C,self.current_slice(3),'z',self.slice_args);
-%             self.image.temp.XZ = self.slice_method(self.C,self.current_slice(2),'y',self.slice_args);
-%             self.image.temp.YZ = self.slice_method(self.C,self.current_slice(1),'x',self.slice_args); 
-            
-%             if self.do_db
-%                 self.image.temp.XY_db = dBs(self.image.temp.XY, self.noise_floor, self.signal_ceil);
-%                 self.image.temp.XZ_db = dBs(self.image.temp.XZ, self.noise_floor, self.signal_ceil);
-%                 self.image.temp.YZ_db = dBs(self.image.temp.YZ, self.noise_floor, self.signal_ceil);   
-%                 self.image.XY.set('CData', rescale(self.image.temp.XY_db));
-%                 self.image.XZ.set('CData', rescale(self.image.temp.XZ_db));
-%                 self.image.YZ.set('CData', rescale(self.image.temp.YZ_db));  
-%             else
-%                 self.image.XY.set('CData', self.image.temp.XY);
-%                 self.image.XZ.set('CData', self.image.temp.XZ);
-%                 self.image.YZ.set('CData', self.image.temp.YZ);
-%             end
+            self.ui_update_histograms;         
         end    
         
         function ui_update_histograms(self)            
@@ -479,13 +409,12 @@ classdef orthofig < cubefig
 
                 axes(self.histograms.axes.XY);
                 
+                
                 self.histograms.XY = histogram( ...
                     self.image.temp.XY(randi(numel(self.image.temp.XY),self.histograms.samples,1)), ...
                     self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
                 );
-%                 hold on
-%                 histogram(self.image.temp.rawXY, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
-%                 hold off
+
                 set(gca, 'YScale', 'Log');
                 set(gca, 'YTick', []);
                 set(gca, 'XTick', []);
@@ -499,9 +428,7 @@ classdef orthofig < cubefig
                     self.image.temp.XZ(randi(numel(self.image.temp.XZ),self.histograms.samples,1)), ...
                     self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
                 );
-%                 hold on
-%                 histogram(self.image.temp.rawXZ, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
-%                 hold off
+
                 set(gca, 'YScale', 'Log');
                 set(gca, 'YTick', []);
                 set(gca, 'XTick', []);
@@ -515,9 +442,7 @@ classdef orthofig < cubefig
                     self.image.temp.YZ(randi(numel(self.image.temp.YZ),self.histograms.samples,1)), ...
                     self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
                 );
-%                 hold on
-%                 histogram(self.image.temp.rawYZ, self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k');
-%                 hold off
+
                 set(gca, 'YScale', 'Log');
                 set(gca, 'YTick', []);
                 set(gca, 'XTick', []);
