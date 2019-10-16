@@ -461,7 +461,7 @@ classdef orthofig < cubefig
                      
                     title(self.histograms.axes.XY, 'XY', 'Position', [1,1,0])
                     
-                    self.histograms.xscale = [rmin(self.C), rmax(self.C)];
+                    self.histograms.xscale = self.range;
                 end
                 
                 % Only need to do this when building or rescaling
