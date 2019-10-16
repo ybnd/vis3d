@@ -28,7 +28,7 @@ classdef orthofig < cubefig
     end
     
     methods 
-        function self = orthofig(C, fig, M, z_ratio)
+        function obj = orthofig(C, fig, M, z_ratio)
             switch nargin
                 case 1
                     fig = figure;
@@ -41,378 +41,378 @@ classdef orthofig < cubefig
                     z_ratio = 2;
             end
             
-            self.C = C;
-            self.size = size(C.cube);
+            obj.C = C;
+            obj.size = size(C.cube);
             
-            self.f = fig; 
+            obj.f = fig; 
             
-            self.M = M;
-            if ~isnan(z_ratio) && self.z_ratio > 0
-                self.z_ratio = z_ratio;
+            obj.M = M;
+            if ~isnan(z_ratio) && obj.z_ratio > 0
+                obj.z_ratio = z_ratio;
             else
-                self.z_ratio = 1;
+                obj.z_ratio = 1;
             end
             
-            self.range = [rmin(C.cube), rmax(C.cube)];
-            self.build;
+            obj.range = [rmin(C.cube), rmax(C.cube)];
+            obj.build;
         end
         
-        function build(self)
-            build@cubefig(self);
+        function build(obj)
+            build@cubefig(obj);
             
-            Nx = self.size(1); Ny = self.size(2); Nz = self.size(3);  
+            Nx = obj.size(1); Ny = obj.size(2); Nz = obj.size(3);  
             
-            [self.image.XY, self.image.XZ, self.image.YZ, self.image.overlay, self.pad] = imshow_tight_ortho( ...
-                self.C, self.current_slice, self.M, self.z_ratio, self.pad ...
+            [obj.image.XY, obj.image.XZ, obj.image.YZ, obj.image.overlay, obj.pad] = imshow_tight_ortho( ...
+                obj.C, obj.current_slice, obj.M, obj.z_ratio, obj.pad ...
             );
         
-            aXY = copyobj(self.image.XY.Parent, self.f); cla(aXY);
-            aXZ = copyobj(self.image.XZ.Parent, self.f); cla(aXZ);
-            aYZ = copyobj(self.image.YZ.Parent, self.f); cla(aYZ);
+            aXY = copyobj(obj.image.XY.Parent, obj.f); cla(aXY);
+            aXZ = copyobj(obj.image.XZ.Parent, obj.f); cla(aXZ);
+            aYZ = copyobj(obj.image.YZ.Parent, obj.f); cla(aYZ);
 
             ap = get(aXY, 'Position');
             w_xy = ap(3);   % width of XY image
             
             gui = interactive_methods_gui;
             
-            self.w_img = gui.selector_width + gui.controls_max_width + 3*gui.gap;
+            obj.w_img = gui.selector_width + gui.controls_max_width + 3*gui.gap;
 
-            self.slice = self.C.im.selectors.slice;
-            self.postprocess = self.C.im.selectors.postprocess;
+            obj.slice = obj.C.im.selectors.slice;
+            obj.postprocess = obj.C.im.selectors.postprocess;
             
-            self.slice.build_gui(self.f, [self.border, 47], @self.ui_update_images, {'position', 'axis'});
-            self.postprocess.build_gui(self.f, [self.border, 47-gui.height-gui.gap], @self.ui_update_images, {'global range'});
-            self.postprocess.select('dBs_global');
-            self.postprocess.set('global range', self.range);
+            obj.slice.build_gui(obj.f, [obj.border, 47], @obj.ui_update_images, {'position', 'axis'});
+            obj.postprocess.build_gui(obj.f, [obj.border, 47-gui.height-gui.gap], @obj.ui_update_images, {'global range'});
+            obj.postprocess.select('dBs_global');
+            obj.postprocess.set('global range', obj.range);
             
             
 
-            self.control.Z_slider = uicontrol('style', 'slider', ...
-                'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, ...
-                                5, w_xy - self.w_img - self.d_img_xyz - self.w_lab, 20] ,...
-                'Value', self.current_slice(3), 'min', 1, 'max', Nz, ...
+            obj.control.Z_slider = uicontrol('style', 'slider', ...
+                'Position', [obj.border + obj.w_img + obj.d_img_xyz + obj.w_lab, ...
+                                5, w_xy - obj.w_img - obj.d_img_xyz - obj.w_lab, 20] ,...
+                'Value', obj.current_slice(3), 'min', 1, 'max', Nz, ...
                 'SliderStep', [1/Nz, 1/Nz] ...
                 );
-            self.control.Z_text = uicontrol('style', 'text', ...
-                'Position', [self.border + self.w_img + self.d_img_xyz, 3, self.w_lab,20], ...
-                'String', sprintf('z(%d)',self.current_slice(3)));
-            addlistener(self.control.Z_slider, 'Value', 'PostSet', @self.Z_slider_callback);
+            obj.control.Z_text = uicontrol('style', 'text', ...
+                'Position', [obj.border + obj.w_img + obj.d_img_xyz, 3, obj.w_lab,20], ...
+                'String', sprintf('z(%d)',obj.current_slice(3)));
+            addlistener(obj.control.Z_slider, 'Value', 'PostSet', @obj.Z_slider_callback);
 
-            self.control.Y_text = uicontrol('style', 'text', ...
-                'Position', [self.border + self.w_img + self.d_img_xyz, 25, self.w_lab,20], ...
-                'String', sprintf('y(%d)',self.current_slice(2)));
-            self.control.Y_slider = uicontrol('style', 'slider', ...
-                'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, ...
-                                27, w_xy - self.w_img - self.d_img_xyz - self.w_lab,20] ,...
-                'Value', self.current_slice(2), 'min', 1, 'max', Ny, ...
+            obj.control.Y_text = uicontrol('style', 'text', ...
+                'Position', [obj.border + obj.w_img + obj.d_img_xyz, 25, obj.w_lab,20], ...
+                'String', sprintf('y(%d)',obj.current_slice(2)));
+            obj.control.Y_slider = uicontrol('style', 'slider', ...
+                'Position', [obj.border + obj.w_img + obj.d_img_xyz + obj.w_lab, ...
+                                27, w_xy - obj.w_img - obj.d_img_xyz - obj.w_lab,20] ,...
+                'Value', obj.current_slice(2), 'min', 1, 'max', Ny, ...
                 'SliderStep', [1/Ny, 1/Ny] ...
                 );
-            addlistener(self.control.Y_slider, 'Value', 'PostSet', @self.Y_slider_callback);
+            addlistener(obj.control.Y_slider, 'Value', 'PostSet', @obj.Y_slider_callback);
 
-            self.control.X_text = uicontrol('style', 'text', ...
-                'Position', [self.border + self.w_img + self.d_img_xyz, 47, self.w_lab, 20], ...
-                'String', sprintf('x(%d)',self.current_slice(1)));
-            self.control.X_slider = uicontrol('style', 'slider', ...
-                'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, ...
-                                49, w_xy - self.w_img - self.d_img_xyz - self.w_lab,20] ,...
-                'Value', self.current_slice(1), 'min', 1, 'max', Nx, ...
+            obj.control.X_text = uicontrol('style', 'text', ...
+                'Position', [obj.border + obj.w_img + obj.d_img_xyz, 47, obj.w_lab, 20], ...
+                'String', sprintf('x(%d)',obj.current_slice(1)));
+            obj.control.X_slider = uicontrol('style', 'slider', ...
+                'Position', [obj.border + obj.w_img + obj.d_img_xyz + obj.w_lab, ...
+                                49, w_xy - obj.w_img - obj.d_img_xyz - obj.w_lab,20] ,...
+                'Value', obj.current_slice(1), 'min', 1, 'max', Nx, ...
                 'SliderStep', [1/Nx, 1/Nx] ...
                 );
-            addlistener(self.control.X_slider, 'Value', 'PostSet', @self.X_slider_callback);
+            addlistener(obj.control.X_slider, 'Value', 'PostSet', @obj.X_slider_callback);
 
-            set(self.f, 'WindowScrollWheelFcn', @self.scroll);
+            set(obj.f, 'WindowScrollWheelFcn', @obj.scroll);
 
-            set(self.image.XY, 'ButtonDownFcn', @self.XY_ButtonDownFcn);
-            set(self.image.XZ, 'ButtonDownFcn', @self.XZ_ButtonDownFcn);
-            set(self.image.YZ, 'ButtonDownFcn', @self.YZ_ButtonDownFcn);
-            set(self.f, 'WindowButtonUpFcn', @self.WindowButtonUpFcn);
-            set(self.f, 'WindowButtonMotionFcn', @self.WindowButtonMotionFcn);
+            set(obj.image.XY, 'ButtonDownFcn', @obj.XY_ButtonDownFcn);
+            set(obj.image.XZ, 'ButtonDownFcn', @obj.XZ_ButtonDownFcn);
+            set(obj.image.YZ, 'ButtonDownFcn', @obj.YZ_ButtonDownFcn);
+            set(obj.f, 'WindowButtonUpFcn', @obj.WindowButtonUpFcn);
+            set(obj.f, 'WindowButtonMotionFcn', @obj.WindowButtonMotionFcn);
 
             positions = struct(                                                 ...
-                'ui_slice_method', [self.border, 58, self.w_img, 12],                         ...
-                'ui_db', [self.border-1, self.border+20, self.w_db, 20],                          ...
-                'ui_db_floor', [self.border + self.w_db, self.border, self.w_img - self.w_db-1,20],    ...
-                'ui_db_ceil', [self.border+self.w_db, self.border+1+20, self.w_img-self.w_db-1, 20]    ...
+                'ui_slice_method', [obj.border, 58, obj.w_img, 12],                         ...
+                'ui_db', [obj.border-1, obj.border+20, obj.w_db, 20],                          ...
+                'ui_db_floor', [obj.border + obj.w_db, obj.border, obj.w_img - obj.w_db-1,20],    ...
+                'ui_db_ceil', [obj.border+obj.w_db, obj.border+1+20, obj.w_img-obj.w_db-1, 20]    ...
             );
             
-            dfpos = [0 0 self.pad(3)+self.pad(4) self.pad(1)+self.pad(2)];
-            dhpos = [self.pad(3) self.pad(1) 0 0];
+            dfpos = [0 0 obj.pad(3)+obj.pad(4) obj.pad(1)+obj.pad(2)];
+            dhpos = [obj.pad(3) obj.pad(1) 0 0];
 
-            X = Ny*self.M; % Notice: X and Y switched (!!!)
-            Y = Nx*self.M;
-            Z = Nz*self.M*self.z_ratio;
+            X = Ny*obj.M; % Notice: X and Y switched (!!!)
+            Y = Nx*obj.M;
+            Z = Nz*obj.M*obj.z_ratio;
 
-            set(self.f, 'Position', [self.f.Position(1), self.f.Position(2), X+Z, Y+Z] + dfpos);
-            set(self.image.XY.Parent, 'Position', [0,Z+2,X,Y] + dhpos);
-            set(self.image.XZ.Parent, 'Position', [X+2,Z+2,Z,Y] + dhpos);
-            set(self.image.YZ.Parent, 'Position', [0,0,X,Z] + dhpos);  
+            set(obj.f, 'Position', [obj.f.Position(1), obj.f.Position(2), X+Z, Y+Z] + dfpos);
+            set(obj.image.XY.Parent, 'Position', [0,Z+2,X,Y] + dhpos);
+            set(obj.image.XZ.Parent, 'Position', [X+2,Z+2,Z,Y] + dhpos);
+            set(obj.image.YZ.Parent, 'Position', [0,0,X,Z] + dhpos);  
             
-            self.ui_histograms = uicontrol('Style', 'togglebutton', 'String', 'Histogram', ...
-                'Position', [positions.ui_db(1), self.border, positions.ui_db(3), positions.ui_db(4)], ...
-                'Value', self.show_histograms, 'callback', @self.ui_toggle_histograms);
+            obj.ui_histograms = uicontrol('Style', 'togglebutton', 'String', 'Histogram', ...
+                'Position', [positions.ui_db(1), obj.border, positions.ui_db(3), positions.ui_db(4)], ...
+                'Value', obj.show_histograms, 'callback', @obj.ui_toggle_histograms);
             
                
 
-            self.ui_update_images;
-            self.place_overlay;
-            self.ui_update_histograms;
-            set(self.f, 'visible', 'on')    
+            obj.ui_update_images;
+            obj.place_overlay;
+            obj.ui_update_histograms;
+            set(obj.f, 'visible', 'on')    
         end    
     
     %% Callbacks
     
             
 
-        function Z_slider_callback(self, ~, eventdata)            
-            self.previous_slice = self.current_slice;
+        function Z_slider_callback(obj, ~, eventdata)            
+            obj.previous_slice = obj.current_slice;
             new_Z_slice = floor(get(eventdata.AffectedObject, 'Value'));
-            self.current_slice(3) = new_Z_slice;
-            self.control.Z_text.String = sprintf('z(%d)',new_Z_slice);
+            obj.current_slice(3) = new_Z_slice;
+            obj.control.Z_text.String = sprintf('z(%d)',new_Z_slice);
 
-            [self.image.temp.XY, self.image.temp.rawXY] = self.C.slice(self.current_slice(3),'z');
-            self.image.XY.set('CData',self.image.temp.XY);
+            [obj.image.temp.XY, obj.image.temp.rawXY] = obj.C.slice(obj.current_slice(3),'z');
+            obj.image.XY.set('CData',obj.image.temp.XY);
 
-            self.place_overlay;
-            self.ui_update_histograms;
+            obj.place_overlay;
+            obj.ui_update_histograms;
         end
 
-        function Y_slider_callback(self, ~, eventdata)
-            self.previous_slice = self.current_slice;
+        function Y_slider_callback(obj, ~, eventdata)
+            obj.previous_slice = obj.current_slice;
             new_Y_slice = floor(get(eventdata.AffectedObject, 'Value'));
-            self.current_slice(2) = new_Y_slice;
-            self.control.Y_text.String = sprintf('y(%d)',new_Y_slice);
+            obj.current_slice(2) = new_Y_slice;
+            obj.control.Y_text.String = sprintf('y(%d)',new_Y_slice);
                         
-            [self.image.temp.XZ, self.image.temp.rawXZ] = self.C.slice(self.current_slice(2),'y');
-            self.image.XZ.set('CData', self.image.temp.XZ);
+            [obj.image.temp.XZ, obj.image.temp.rawXZ] = obj.C.slice(obj.current_slice(2),'y');
+            obj.image.XZ.set('CData', obj.image.temp.XZ);
             
-            self.place_overlay;
-            self.ui_update_histograms;
+            obj.place_overlay;
+            obj.ui_update_histograms;
         end
 
-        function X_slider_callback(self, ~, eventdata)
-            self.previous_slice = self.current_slice;
+        function X_slider_callback(obj, ~, eventdata)
+            obj.previous_slice = obj.current_slice;
             new_X_slice = floor(get(eventdata.AffectedObject, 'Value'));
-            self.current_slice(1) = new_X_slice;
-            self.control.X_text.String = sprintf('x(%d)', new_X_slice);
+            obj.current_slice(1) = new_X_slice;
+            obj.control.X_text.String = sprintf('x(%d)', new_X_slice);
             
-            [self.image.temp.YZ, self.image.temp.rawYZ] = self.C.slice(self.current_slice(1),'x');
-            self.image.YZ.set('CData', self.image.temp.YZ);
+            [obj.image.temp.YZ, obj.image.temp.rawYZ] = obj.C.slice(obj.current_slice(1),'x');
+            obj.image.YZ.set('CData', obj.image.temp.YZ);
 
-            self.place_overlay;
-            self.ui_update_histograms;
+            obj.place_overlay;
+            obj.ui_update_histograms;
         end
 
-        function place_overlay(self)    
-            Nx = self.size(1); Ny = self.size(2); Nz = self.size(3);
+        function place_overlay(obj)    
+            Nx = obj.size(1); Ny = obj.size(2); Nz = obj.size(3);
             
-            self.image.overlay.XY.X.XData = [0,Ny];
-            self.image.overlay.XY.X.YData = [self.current_slice(1), self.current_slice(1)];
-            self.image.overlay.XZ.X.XData = [0,Nz];
-            self.image.overlay.XZ.X.YData = [self.current_slice(1), self.current_slice(1)];
+            obj.image.overlay.XY.X.XData = [0,Ny];
+            obj.image.overlay.XY.X.YData = [obj.current_slice(1), obj.current_slice(1)];
+            obj.image.overlay.XZ.X.XData = [0,Nz];
+            obj.image.overlay.XZ.X.YData = [obj.current_slice(1), obj.current_slice(1)];
             
-            self.image.overlay.XY.Y.YData = [0,Ny];
-            self.image.overlay.XY.Y.XData = [self.current_slice(2), self.current_slice(2)];
-            self.image.overlay.YZ.Y.YData = [0,Nz];
-            self.image.overlay.YZ.Y.XData = [self.current_slice(2), self.current_slice(2)];
+            obj.image.overlay.XY.Y.YData = [0,Ny];
+            obj.image.overlay.XY.Y.XData = [obj.current_slice(2), obj.current_slice(2)];
+            obj.image.overlay.YZ.Y.YData = [0,Nz];
+            obj.image.overlay.YZ.Y.XData = [obj.current_slice(2), obj.current_slice(2)];
             
-            self.image.overlay.XZ.Z.YData = [0,Nx];
-            self.image.overlay.XZ.Z.XData = [self.current_slice(3), self.current_slice(3)];
-            self.image.overlay.YZ.Z.XData = [0,Ny];
-            self.image.overlay.YZ.Z.YData = [self.current_slice(3), self.current_slice(3)];
+            obj.image.overlay.XZ.Z.YData = [0,Nx];
+            obj.image.overlay.XZ.Z.XData = [obj.current_slice(3), obj.current_slice(3)];
+            obj.image.overlay.YZ.Z.XData = [0,Ny];
+            obj.image.overlay.YZ.Z.YData = [obj.current_slice(3), obj.current_slice(3)];
         end
 
-        function scroll(self, source, eventdata)
+        function scroll(obj, source, eventdata)
             method = get(source, 'CurrentModifier');
             if isempty(method); method = {''}; end
 
             switch method{1}
                 case 'shift'
-                    new_value = get(self.control.X_slider, 'Value') - 1 * eventdata.VerticalScrollCount*10;
-                    if new_value <= get(self.control.X_slider, 'max') && new_value >= get(self.control.X_slider, 'min')
-                        set(self.control.X_slider, 'Value', new_value);
+                    new_value = get(obj.control.X_slider, 'Value') - 1 * eventdata.VerticalScrollCount*10;
+                    if new_value <= get(obj.control.X_slider, 'max') && new_value >= get(obj.control.X_slider, 'min')
+                        set(obj.control.X_slider, 'Value', new_value);
                     end
                 case 'alt'
-                    new_value = get(self.control.Y_slider, 'Value') - 1 * eventdata.VerticalScrollCount*10;
-                    if new_value <= get(self.control.Y_slider, 'max') && new_value >= get(self.control.Y_slider, 'min')
-                        set(self.control.Y_slider, 'Value', new_value);
+                    new_value = get(obj.control.Y_slider, 'Value') - 1 * eventdata.VerticalScrollCount*10;
+                    if new_value <= get(obj.control.Y_slider, 'max') && new_value >= get(obj.control.Y_slider, 'min')
+                        set(obj.control.Y_slider, 'Value', new_value);
                     end
                 case 'control'
-                    new_value = self.M * (1 - 0.05*eventdata.VerticalScrollCount);
-                    Nx = self.size(1); Ny = self.size(2); Nz = self.size(3);
+                    new_value = obj.M * (1 - 0.05*eventdata.VerticalScrollCount);
+                    Nx = obj.size(1); Ny = obj.size(2); Nz = obj.size(3);
                     
                     if any([Nx,Ny] * new_value < monitor_resolution * 0.5) && any([Nx,Ny] * new_value > monitor_resolution * 0.25)
-                        self.M = new_value;
+                        obj.M = new_value;
 
-                        dfpos = [0 0 self.pad(3)+self.pad(4) self.pad(1)+self.pad(2)];
-                        dhpos = [self.pad(3) self.pad(1) 0 0];
+                        dfpos = [0 0 obj.pad(3)+obj.pad(4) obj.pad(1)+obj.pad(2)];
+                        dhpos = [obj.pad(3) obj.pad(1) 0 0];
 
-                        X = Ny*self.M; % Notice: X and Y switched (!!!)
-                        Y = Nx*self.M;
-                        Z = Nz*self.M*self.z_ratio;
+                        X = Ny*obj.M; % Notice: X and Y switched (!!!)
+                        Y = Nx*obj.M;
+                        Z = Nz*obj.M*obj.z_ratio;
 
-                        set(self.f, 'Position', [self.f.Position(1), self.f.Position(2), X+Z, Y+Z] + dfpos);
-                        set(self.image.XY.Parent, 'Position', [0,Z+2,X,Y] + dhpos);
-                        set(self.image.XZ.Parent, 'Position', [X+2,Z+2,Z,Y] + dhpos);
-                        set(self.image.YZ.Parent, 'Position', [0,0,X,Z] + dhpos);  
+                        set(obj.f, 'Position', [obj.f.Position(1), obj.f.Position(2), X+Z, Y+Z] + dfpos);
+                        set(obj.image.XY.Parent, 'Position', [0,Z+2,X,Y] + dhpos);
+                        set(obj.image.XZ.Parent, 'Position', [X+2,Z+2,Z,Y] + dhpos);
+                        set(obj.image.YZ.Parent, 'Position', [0,0,X,Z] + dhpos);  
                         
-                        ap = get(self.image.XY.Parent, 'Position');
+                        ap = get(obj.image.XY.Parent, 'Position');
                         w_xy = ap(3);   % width of XY image
                         
-                        set(self.control.Z_slider, 'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, 5, w_xy - self.w_img - self.d_img_xyz - self.w_lab, 20])
-                        set(self.control.Y_slider, 'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, 27, w_xy - self.w_img - self.d_img_xyz - self.w_lab,20])
-                        set(self.control.X_slider, 'Position', [self.border + self.w_img + self.d_img_xyz + self.w_lab, 49, w_xy - self.w_img - self.d_img_xyz - self.w_lab,20])
-                        self.ui_update_histograms
+                        set(obj.control.Z_slider, 'Position', [obj.border + obj.w_img + obj.d_img_xyz + obj.w_lab, 5, w_xy - obj.w_img - obj.d_img_xyz - obj.w_lab, 20])
+                        set(obj.control.Y_slider, 'Position', [obj.border + obj.w_img + obj.d_img_xyz + obj.w_lab, 27, w_xy - obj.w_img - obj.d_img_xyz - obj.w_lab,20])
+                        set(obj.control.X_slider, 'Position', [obj.border + obj.w_img + obj.d_img_xyz + obj.w_lab, 49, w_xy - obj.w_img - obj.d_img_xyz - obj.w_lab,20])
+                        obj.ui_update_histograms
                     end
                 otherwise
-                    new_value = get(self.control.Z_slider, 'Value') - 1 * eventdata.VerticalScrollCount;
-                    if new_value <= get(self.control.Z_slider, 'max') && new_value >= get(self.control.Z_slider, 'min')
-                        set(self.control.Z_slider, 'Value', new_value);
+                    new_value = get(obj.control.Z_slider, 'Value') - 1 * eventdata.VerticalScrollCount;
+                    if new_value <= get(obj.control.Z_slider, 'max') && new_value >= get(obj.control.Z_slider, 'min')
+                        set(obj.control.Z_slider, 'Value', new_value);
                     end                        
             end
 
         end
         
-        function WindowButtonUpFcn(self, ~, ~)
-            self.roaming = false;
+        function WindowButtonUpFcn(obj, ~, ~)
+            obj.roaming = false;
         end
         
-        function WindowButtonMotionFcn(self, stuff, eventdata)
-            if self.roaming
-                self.f.CurrentObject.ButtonDownFcn(stuff, eventdata)                              
+        function WindowButtonMotionFcn(obj, stuff, eventdata)
+            if obj.roaming
+                obj.f.CurrentObject.ButtonDownFcn(stuff, eventdata)                              
             end
         end
 
-        function XY_ButtonDownFcn(self, ~, eventdata)    
-            self.roaming = true;
+        function XY_ButtonDownFcn(obj, ~, eventdata)    
+            obj.roaming = true;
             pos = floor(eventdata.IntersectionPoint);
 
-            if ~any(isnan(pos)) && 1 < pos(2) < self.size(1) && 1 < pos(1) < self.size(2)
-                self.previous_slice = self.current_slice;
-                self.current_slice(1) = pos(2); self.current_slice(1) = pos(1);
+            if ~any(isnan(pos)) && 1 < pos(2) < obj.size(1) && 1 < pos(1) < obj.size(2)
+                obj.previous_slice = obj.current_slice;
+                obj.current_slice(1) = pos(2); obj.current_slice(1) = pos(1);
                 try
-                    set(self.control.Y_slider, 'Value', pos(1));
-                    set(self.control.X_slider, 'Value', pos(2));
+                    set(obj.control.Y_slider, 'Value', pos(1));
+                    set(obj.control.X_slider, 'Value', pos(2));
 
-                    self.update()
+                    obj.update()
                 catch err
                    pass
                 end
             end
         end
 
-        function XZ_ButtonDownFcn(self, ~, eventdata)     
-            self.roaming = true;
+        function XZ_ButtonDownFcn(obj, ~, eventdata)     
+            obj.roaming = true;
             pos = floor(eventdata.IntersectionPoint);  
             
-            if ~any(isnan(pos))  && 1 < pos(2) < self.size(1) && 1 < pos(1) < self.size(3)
-                self.previous_slice = self.current_slice;
-                self.current_slice(1) = pos(2); self.current_slice(3) = pos(1);
+            if ~any(isnan(pos))  && 1 < pos(2) < obj.size(1) && 1 < pos(1) < obj.size(3)
+                obj.previous_slice = obj.current_slice;
+                obj.current_slice(1) = pos(2); obj.current_slice(3) = pos(1);
                 try
-                    set(self.control.X_slider, 'Value', pos(2));
-                    set(self.control.Z_slider, 'Value', pos(1));
+                    set(obj.control.X_slider, 'Value', pos(2));
+                    set(obj.control.Z_slider, 'Value', pos(1));
 
-                    self.update();
+                    obj.update();
                 catch err
                     pass
                 end
             end
         end
 
-        function YZ_ButtonDownFcn(self, ~, eventdata)
-            self.roaming = true;
+        function YZ_ButtonDownFcn(obj, ~, eventdata)
+            obj.roaming = true;
             pos = floor(eventdata.IntersectionPoint);
             
-            if ~any(isnan(pos))  && 1 < pos(2) < self.size(3) && 1 < pos(1) < self.size(2)
-                self.previous_slice = self.current_slice;
-                self.current_slice(2) = pos(1); self.current_slice(3) = pos(2);
+            if ~any(isnan(pos))  && 1 < pos(2) < obj.size(3) && 1 < pos(1) < obj.size(2)
+                obj.previous_slice = obj.current_slice;
+                obj.current_slice(2) = pos(1); obj.current_slice(3) = pos(2);
                 try
-                    set(self.control.Y_slider, 'Value', pos(1));
-                    set(self.control.Z_slider, 'Value', pos(2));
+                    set(obj.control.Y_slider, 'Value', pos(1));
+                    set(obj.control.Z_slider, 'Value', pos(2));
 
-                    self.update();
+                    obj.update();
                 catch err
                     pass
                 end
             end
         end
         
-        function ui_toggle_histograms(self, ~, eventdata)       
-            self.show_histograms = eventdata.Source.Value;
+        function ui_toggle_histograms(obj, ~, eventdata)       
+            obj.show_histograms = eventdata.Source.Value;
             
-            if any(strcmp(fieldnames(self.histograms), 'axes'))
-                for axis = [self.histograms.axes.XY, self.histograms.axes.XZ, self.histograms.axes.YZ]
-                    set(axis, 'Visible', self.show_histograms);
-                    set(get(axis, 'Children'), 'Visible', self.show_histograms);
+            if any(strcmp(fieldnames(obj.histograms), 'axes'))
+                for axis = [obj.histograms.axes.XY, obj.histograms.axes.XZ, obj.histograms.axes.YZ]
+                    set(axis, 'Visible', obj.show_histograms);
+                    set(get(axis, 'Children'), 'Visible', obj.show_histograms);
                 end
             end
             
-            if self.show_histograms
-               self.ui_update_histograms 
+            if obj.show_histograms
+               obj.ui_update_histograms 
             end 
         end        
     end
     
     methods(Access = public)  % Actually, why are these even public at all?
-        function update(self)
-            update@cubefig(self)
-            self.ui_update_images
-            self.ui_update_histograms
-            self.place_overlay
+        function update(obj)
+            update@cubefig(obj)
+            obj.ui_update_images
+            obj.ui_update_histograms
+            obj.place_overlay
         end
         
-        function ui_update_images(self)
-            [self.image.temp.XY, self.image.temp.rawXY] = self.C.slice(self.current_slice(3),'z');
-            [self.image.temp.XZ, self.image.temp.rawXZ] = self.C.slice(self.current_slice(2),'y');
-            [self.image.temp.YZ, self.image.temp.rawYZ] = self.C.slice(self.current_slice(1),'x');
+        function ui_update_images(obj)
+            [obj.image.temp.XY, obj.image.temp.rawXY] = obj.C.slice(obj.current_slice(3),'z');
+            [obj.image.temp.XZ, obj.image.temp.rawXZ] = obj.C.slice(obj.current_slice(2),'y');
+            [obj.image.temp.YZ, obj.image.temp.rawYZ] = obj.C.slice(obj.current_slice(1),'x');
 
-            self.image.XY.set('CData', self.image.temp.XY);
-            self.image.XZ.set('CData', self.image.temp.XZ);
-            self.image.YZ.set('CData', self.image.temp.YZ);
+            obj.image.XY.set('CData', obj.image.temp.XY);
+            obj.image.XZ.set('CData', obj.image.temp.XZ);
+            obj.image.YZ.set('CData', obj.image.temp.YZ);
             
-            self.ui_update_histograms;         
+            obj.ui_update_histograms;         
         end    
         
-        function ui_update_histograms(self)            
-            if self.show_histograms
+        function ui_update_histograms(obj)            
+            if obj.show_histograms
                 
                 % Don't do global histogram: takes too long, but parallel pool takes even longer to start up :)                    
-                if ~any(strcmp(fieldnames(self.histograms), 'axes'))
+                if ~any(strcmp(fieldnames(obj.histograms), 'axes'))
                     
-                    self.histograms.axes.YZ = axes(self.f);       
-                    self.histograms.axes.XZ = axes(self.f);       
-                    self.histograms.axes.XY = axes(self.f);
+                    obj.histograms.axes.YZ = axes(obj.f);       
+                    obj.histograms.axes.XZ = axes(obj.f);       
+                    obj.histograms.axes.XY = axes(obj.f);
                     
-                    set(self.histograms.axes.YZ, 'YTick', []);
-                    set(self.histograms.axes.YZ, 'XTick', []);
-                    set(self.histograms.axes.XZ, 'YTick', []);
-                    set(self.histograms.axes.XZ, 'XTick', []);
-                    set(self.histograms.axes.XY, 'YTick', []);
-                    set(self.histograms.axes.XY, 'XTick', []);
+                    set(obj.histograms.axes.YZ, 'YTick', []);
+                    set(obj.histograms.axes.YZ, 'XTick', []);
+                    set(obj.histograms.axes.XZ, 'YTick', []);
+                    set(obj.histograms.axes.XZ, 'XTick', []);
+                    set(obj.histograms.axes.XY, 'YTick', []);
+                    set(obj.histograms.axes.XY, 'XTick', []);
                      
-                    title(self.histograms.axes.XY, 'XY', 'Position', [1,1,0])
+                    title(obj.histograms.axes.XY, 'XY', 'Position', [1,1,0])
                     
-                    self.histograms.xscale = self.range;
+                    obj.histograms.xscale = obj.range;
                 end
                 
                 % Only need to do this when building or rescaling
-                posXZ = self.image.XZ.Parent.Position;
-                posYZ = self.image.YZ.Parent.Position;
+                posXZ = obj.image.XZ.Parent.Position;
+                posYZ = obj.image.YZ.Parent.Position;
                     
                 dh = 0;
                 gap = -1;
                 w0 = posXZ(1); h0 = posYZ(2)+dh; w = posXZ(3); h = (posYZ(4) - 2*gap - dh)/3;
-                setpixelposition(self.histograms.axes.YZ, [w0, h0, w, h]);
-                setpixelposition(self.histograms.axes.XZ, [w0, h0+gap+h, w, h]);
-                setpixelposition(self.histograms.axes.XY, [w0, h0+gap+h+gap+h, w, h]);
+                setpixelposition(obj.histograms.axes.YZ, [w0, h0, w, h]);
+                setpixelposition(obj.histograms.axes.XZ, [w0, h0+gap+h, w, h]);
+                setpixelposition(obj.histograms.axes.XY, [w0, h0+gap+h+gap+h, w, h]);
                 
-                xscale = self.postprocess.do(self.histograms.xscale-min(self.histograms.xscale)+1); 
+                xscale = obj.postprocess.do(obj.histograms.xscale-min(obj.histograms.xscale)+1); 
 
-                axes(self.histograms.axes.XY);
+                axes(obj.histograms.axes.XY);
                 
                 
-                self.histograms.XY = histogram( ...
-                    self.image.temp.XY(randi(numel(self.image.temp.XY),self.histograms.samples,1)), ...
-                    self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
+                obj.histograms.XY = histogram( ...
+                    obj.image.temp.XY(randi(numel(obj.image.temp.XY),obj.histograms.samples,1)), ...
+                    obj.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
                 );
 
                 set(gca, 'YScale', 'Log');
@@ -422,11 +422,11 @@ classdef orthofig < cubefig
                 set(gca, 'YColor', [0.5, 0.5, 0.5]);
                 xlim(xscale);
 
-                axes(self.histograms.axes.XZ);
+                axes(obj.histograms.axes.XZ);
                 
-                self.histograms.XZ = histogram( ...
-                    self.image.temp.XZ(randi(numel(self.image.temp.XZ),self.histograms.samples,1)), ...
-                    self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
+                obj.histograms.XZ = histogram( ...
+                    obj.image.temp.XZ(randi(numel(obj.image.temp.XZ),obj.histograms.samples,1)), ...
+                    obj.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
                 );
 
                 set(gca, 'YScale', 'Log');
@@ -436,11 +436,11 @@ classdef orthofig < cubefig
                 set(gca, 'YColor', [0.5, 0.5, 0.5]);
                 xlim(xscale);
 
-                axes(self.histograms.axes.YZ);
+                axes(obj.histograms.axes.YZ);
                 
-                self.histograms.XY = histogram( ...
-                    self.image.temp.YZ(randi(numel(self.image.temp.YZ),self.histograms.samples,1)), ...
-                    self.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
+                obj.histograms.XY = histogram( ...
+                    obj.image.temp.YZ(randi(numel(obj.image.temp.YZ),obj.histograms.samples,1)), ...
+                    obj.histograms.bins, 'LineStyle', 'none', 'FaceColor', 'k', 'FaceAlpha', 0.5 ...
                 );
 
                 set(gca, 'YScale', 'Log');

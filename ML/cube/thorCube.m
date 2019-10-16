@@ -8,53 +8,53 @@ classdef thorCube < Cube
     end
     
     methods
-        function load_data(self)          
-            if ~self.is_loaded
-                if isempty(fields(self.h))
+        function load_data(obj)          
+            if ~obj.is_loaded
+                if isempty(fields(obj.h))
                     % Get .oct file handle (can take quite a while to load with the whole unzipping business)
                     % OCTFileOpen7ZIP overrides the original files use of unzip with a system call to 7zip for speed
-                    self.h = OCTFileOpen7ZIP(self.path);
+                    obj.h = OCTFileOpen7ZIP(obj.path);
                 end
                 
                 % Header to bincube metadata
-                self.meta = self.h.head;     
+                obj.meta = obj.h.head;     
 
                 % Load intensity cube from .oct file
-                cube = single(OCTFileGetIntensity(self.h));   % .oct stores cube as 32-bit float                        
+                cube = single(OCTFileGetIntensity(obj.h));   % .oct stores cube as 32-bit float                        
                 % Transform from dB to ~ 'regular' intensity (match OCMCube)            
 %                 cube = 10.^(drop(cube)/10);   this is relatively unuseful, and takes a long time
                 % Transpose to (X,Y,Z) orientation. If the 'cube' is actually 2d, an error may be thrown.
-                self.cube = permute(cube, [2,3,1]);      
+                obj.cube = permute(cube, [2,3,1]);      
 
                 % Get equivalent of position vector
-                [~, ~, Nz] = size(self.cube);
-                self.dz =  str2num(self.meta.DataFiles.DataFile{3}.Attributes.RangeZ) * 1e6 / Nz;
-                self.data.zpos = linspace(0, (Nz-1)*self.dz, Nz)';
+                [~, ~, Nz] = size(obj.cube);
+                obj.dz =  str2num(obj.meta.DataFiles.DataFile{3}.Attributes.RangeZ) * 1e6 / Nz;
+                obj.data.zpos = linspace(0, (Nz-1)*obj.dz, Nz)';
 
                 % Read preview image. Scan region is denoted in red
-                self.data.preview_image = OCTFileGetColoredData(self.h, 'VideoImage');                       
+                obj.data.preview_image = OCTFileGetColoredData(obj.h, 'VideoImage');                       
                 
                 % Close .oct file handle
-                OCTFileClose(self.h)
+                OCTFileClose(obj.h)
 
                 % Read name & description   % todo: actually read name & description
-                self.name = self.path;  
-                self.desc = '...';
+                obj.name = obj.path;  
+                obj.desc = '...';
 
-                self.is_loaded = true;
+                obj.is_loaded = true;
             end
         end
         
-        function unload_data(self)
-            if self.is_loaded
-                self.h = struct();
-                unload_data@Cube(self)
+        function unload_data(obj)
+            if obj.is_loaded
+                obj.h = struct();
+                unload_data@Cube(obj)
             end
         end
         
-        function preview(self)
-            figure('Name', sprintf('%s - preview image', self.name));
-            imshow_tight(self.data.preview_image);
+        function preview(obj)
+            figure('Name', sprintf('%s - preview image', obj.name));
+            imshow_tight(obj.data.preview_image);
         end
     end
 end

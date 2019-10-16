@@ -4,12 +4,6 @@ classdef cubefig < handle
         size = [0,0,0];
        
         f = false;
-        slice_method = @slice;
-        slice_args = struct();
-
-        do_db = true;
-        noise_floor = 0;
-        signal_ceil = 90;
     end
     
     properties (Access = public)
@@ -29,33 +23,33 @@ classdef cubefig < handle
     end
     
     methods (Access = public)
-        function open(self)
-            if ishandle(self.f)
-                figure(self.f.Number)
+        function open(obj)
+            if ishandle(obj.f)
+                figure(obj.f.Number)
             else
-                self.f = figure;
-                self.build
+                obj.f = figure;
+                obj.build
             end            
         end
         
-        function build(self)
-            if ~ishandle(self.f)
-               self.f = figure; 
+        function build(obj)
+            if ~ishandle(obj.f)
+               obj.f = figure; 
             end
             
-            set(self.f, 'visible', 'off');
-            set(self.f, 'UserData', self);
-            set(self.f, 'MenuBar', 'none');
-            set(self.f, 'Resize', 'off');
+            set(obj.f, 'visible', 'off');
+            set(obj.f, 'UserData', obj);
+            set(obj.f, 'MenuBar', 'none');
+            set(obj.f, 'Resize', 'off');
         end
         
-        function update(self)
+        function update(obj)
             
         end
         
-        function close(self)
-            close(self.f);
-            self.f = false;
+        function close(obj)
+            close(obj.f);
+            obj.f = false;
         end
     end
 end

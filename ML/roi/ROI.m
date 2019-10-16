@@ -28,104 +28,104 @@ classdef ROI < handle
     end
     
     methods
-        function self = ROI(I, rect, number, slice, overlay_axis, slice_method, slice_args)
+        function obj = ROI(I, rect, number, slice, overlay_axis, slice_method, slice_args)
             switch nargin
                 case 4
-                    self.overlay.axis = overlay_axis;
+                    obj.overlay.axis = overlay_axis;
                 case 5
-                    self.overlay.axis = overlay_axis;
-                    self.slice_method = slice_method;
+                    obj.overlay.axis = overlay_axis;
+                    obj.slice_method = slice_method;
                 case 6
-                    self.overlay.axis = overlay_axis;
-                    self.slice_method = slice_method;
-                    self.slice_args = slice_args;
+                    obj.overlay.axis = overlay_axis;
+                    obj.slice_method = slice_method;
+                    obj.slice_args = slice_args;
             end
             
-            self.I = I;
+            obj.I = I;
 
-            self.position = floor(rect.getPosition());
-            self.cols = self.position(1):self.position(1)+self.position(3);
-            self.rows = self.position(2):self.position(2)+self.position(4);
-            self.Nz = length(self.I.position);
-            self.slice = slice;
+            obj.position = floor(rect.getPosition());
+            obj.cols = obj.position(1):obj.position(1)+obj.position(3);
+            obj.rows = obj.position(2):obj.position(2)+obj.position(4);
+            obj.Nz = length(obj.I.position);
+            obj.slice = slice;
             % todo: can we trust this not to break? -> nope, we can't!
             
-            self.get_binary
+            obj.get_binary
             
-            self.compute_intensity; % what is with this dumb syntax
+            obj.compute_intensity; % what is with this dumb syntax
 
-            self.id = get_id(number);
-            self.number = number;
+            obj.id = get_id(number);
+            obj.number = number;
         end
         
-        function get_image(self)
-            self.image = self.slice_method(self.I.cube(self.rows,self.cols,:), self.slice, self.slice_args);
+        function get_image(obj)
+            obj.image = obj.slice_method(obj.I.cube(obj.rows,obj.cols,:), obj.slice, obj.slice_args);
         end
         
-        function get_binary(self)
-            if isempty(self.image)
-                self.get_image
+        function get_binary(obj)
+            if isempty(obj.image)
+                obj.get_image
             end
             
-            self.binary = imbinarize(self.image); % todo: add more options
+            obj.binary = imbinarize(obj.image); % todo: add more options
             
             % Erode & dilate
             SE = strel('square',2);
-            self.binary = imdilate(imerode(self.binary, SE), SE);                 
+            obj.binary = imdilate(imerode(obj.binary, SE), SE);                 
         end
         
-        function compute_intensity(self)           
-            avgs = zeros(1,self.Nz);
-            for z = 1:self.Nz
-                temp = self.I.cube(self.rows,self.cols,z);
-                avgs(z) = mean(temp(self.binary));
+        function compute_intensity(obj)           
+            avgs = zeros(1,obj.Nz);
+            for z = 1:obj.Nz
+                temp = obj.I.cube(obj.rows,obj.cols,z);
+                avgs(z) = mean(temp(obj.binary));
             end
             
-            self.profile = avgs;
+            obj.profile = avgs;
         end
         
-        function [locs, pks] = get_peaks(self, MinPeakProminence)
-            [pks, locs] = findpeaks(normalize2(self.profile), 'MinPeakProminence', MinPeakProminence);
+        function [locs, pks] = get_peaks(obj, MinPeakProminence)
+            [pks, locs] = findpeaks(normalize2(obj.profile), 'MinPeakProminence', MinPeakProminence);
         end
         
-        function show(self, overlay_axis)
+        function show(obj, overlay_axis)
             switch nargin
                 case 2
-                    self.overlay.axis = overlay_axis;
+                    obj.overlay.axis = overlay_axis;
             end
             
-            if ~self.is_shown
-                axes(self.overlay.axis)
-                pos = self.position;
+            if ~obj.is_shown
+                axes(obj.overlay.axis)
+                pos = obj.position;
                 
                 if isempty(get(gca, 'Children'))                    
-                    [Nx,Ny,~] = size(self.I.cube(:,:,1));
+                    [Nx,Ny,~] = size(obj.I.cube(:,:,1));
                     overlay_mask = ones(Nx,Ny);
-                    self.overlay.mask = imshow(overlay_mask, 'Colormap', [0,0,0;0,1,0]);
-                    set(self.overlay.mask, 'AlphaData', zeros(Nx,Ny));
+                    obj.overlay.mask = imshow(overlay_mask, 'Colormap', [0,0,0;0,1,0]);
+                    set(obj.overlay.mask, 'AlphaData', zeros(Nx,Ny));
                 else
                     axis_objs = get(gca, 'Children');
-                    self.overlay.mask = axis_objs(end); % todo:  Image is made first -> last object. This is NOT robust!
+                    obj.overlay.mask = axis_objs(end); % todo:  Image is made first -> last object. This is NOT robust!
                 end
                 
-                self.overlay.rectangle = rectangle('Position', pos, ...
+                obj.overlay.rectangle = rectangle('Position', pos, ...
                     'FaceColor', 'none', 'EdgeColor', [0, 0.8, 0.4, 0.4]);
                 
-                temp_mask = get(self.overlay.mask, 'AlphaData');
-                temp_mask(self.rows, self.cols) = single(self.binary)*0.5;
-                set(self.overlay.mask, 'AlphaData', temp_mask);  
+                temp_mask = get(obj.overlay.mask, 'AlphaData');
+                temp_mask(obj.rows, obj.cols) = single(obj.binary)*0.5;
+                set(obj.overlay.mask, 'AlphaData', temp_mask);  
                 
-                self.overlay.text = text(pos(1)-10,pos(2)+2, num2str(self.number), ...
-                    'HorizontalAlignment', 'center', 'Color', [0, 0.8, 0.5], 'UserData', self.id);
+                obj.overlay.text = text(pos(1)-10,pos(2)+2, num2str(obj.number), ...
+                    'HorizontalAlignment', 'center', 'Color', [0, 0.8, 0.5], 'UserData', obj.id);
             end
             
         end
         
-        function in_gca = is_shown(self)
+        function in_gca = is_shown(obj)
             in_gca = false;
             children = get(gca, 'Children');
             for i = 1:length(children)
-                if strcmp(get(children(i), 'UserData'), self.id)
+                if strcmp(get(children(i), 'UserData'), obj.id)
                     in_gca = true;
                 end
             end 

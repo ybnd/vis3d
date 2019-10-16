@@ -32,7 +32,7 @@ classdef InteractiveMethod < dynamicprops
     end
     
     methods(Access = public)
-        function self = InteractiveMethod(methodh, parname, default, minimum, maximum, options, expects)
+        function obj = InteractiveMethod(methodh, parname, default, minimum, maximum, options, expects)
             switch nargin
                 case 3
                     minimum = {};
@@ -50,60 +50,60 @@ classdef InteractiveMethod < dynamicprops
                     expects = @single;
             end
             
-            self.methodh = methodh;         % Should perform checks!
-            self.parname = parname;
-            self.default = default;
-            self.current = self.default;
-            self.minimum = minimum;
-            self.maximum = maximum;
-            self.options = options;
-            self.expects = expects;
+            obj.methodh = methodh;         % Should perform checks!
+            obj.parname = parname;
+            obj.default = default;
+            obj.current = obj.default;
+            obj.minimum = minimum;
+            obj.maximum = maximum;
+            obj.options = options;
+            obj.expects = expects;
             
-            self.setup;
+            obj.setup;
         end
         
-        function set_callback(self, callback)
-           self.callback = callback; % todo: basic sanity checks 
+        function set_callback(obj, callback)
+           obj.callback = callback; % todo: basic sanity checks 
         end
         
-        function out = do(self, in, varargin) % TODO: should handle nargin after 'in' by modifying self.current -> i.e. call slice.do(cube, 123) -> 123 to first parameter in self.current
+        function out = do(obj, in, varargin) % TODO: should handle nargin after 'in' by modifying obj.current -> i.e. call slice.do(cube, 123) -> 123 to first parameter in obj.current
             % Call method with current parameter values     
             for i = 1:numel(varargin)
-               self.current{i} = varargin{i}; 
+               obj.current{i} = varargin{i}; 
             end
             
-            out = self.methodh(self.expects(in), self.current{:});
+            out = obj.methodh(obj.expects(in), obj.current{:});
         end
         
-        function set(self, parameter, value)
-            if any(strcmp(parameter, self.parname))
-                i = find(not(cellfun('isempty', strfind(self.parname, parameter)))); % https://nl.mathworks.com/matlabcentral/answers/2015-find-index-of-cells-containing-my-string
-%                 if class(value) == class(self.default{i})     % todo: with check: too stringent
-                self.current{i} = value;    % todo: without check: too loose
+        function set(obj, parameter, value)
+            if any(strcmp(parameter, obj.parname))
+                i = find(not(cellfun('isempty', strfind(obj.parname, parameter)))); % https://nl.mathworks.com/matlabcentral/answers/2015-find-index-of-cells-containing-my-string
+%                 if class(value) == class(obj.default{i})     % todo: with check: too stringent
+                obj.current{i} = value;    % todo: without check: too loose
 %                 end
             end
         end
         
-        function update_numeric_parameter(self, source, ~)
-            i = self.get_parameter_index(source); % Parameter index (see InteractiveMethod.build_gui)         
+        function update_numeric_parameter(obj, source, ~)
+            i = obj.get_parameter_index(source); % Parameter index (see InteractiveMethod.build_gui)         
             new_value = str2num(source.String);
-            self.current{i} = min(max(new_value, self.minimum{i}), self.maximum{i}); % todo: do this same sanity check when setting default value in constructor!
-            source.String = self.current{i};
+            obj.current{i} = min(max(new_value, obj.minimum{i}), obj.maximum{i}); % todo: do this same sanity check when setting default value in constructor!
+            source.String = obj.current{i};
             
-            if isa(self.callback, 'function_handle')
-                self.callback();
+            if isa(obj.callback, 'function_handle')
+                obj.callback();
             end
         end
         
-        function update_string_parameter(self, source, ~)
-            i = self.get_parameter_index(source); % Parameter index (see InteractiveMethod.build_gui)
-            self.current{i} = source.String;
-            if isa(self.callback, 'function_handle')
-                self.callback();
+        function update_string_parameter(obj, source, ~)
+            i = obj.get_parameter_index(source); % Parameter index (see InteractiveMethod.build_gui)
+            obj.current{i} = source.String;
+            if isa(obj.callback, 'function_handle')
+                obj.callback();
             end
         end
         
-        function gui_handles = build_gui(self, figure, anchor, callback, disabled_parameters)
+        function gui_handles = build_gui(obj, figure, anchor, callback, disabled_parameters)
             % Build own GUI at anchor in figure
             % ALSO: implement callbacks ~ this gui
             
@@ -114,17 +114,17 @@ classdef InteractiveMethod < dynamicprops
                     disabled_parameters = {};               
             end
             
-            self.set_callback(callback);
+            obj.set_callback(callback);
             
 
-            % Remove disabled parameters from self.parname
+            % Remove disabled parameters from obj.parname
             % https://nl.mathworks.com/matlabcentral/answers/298884-remove-cell-that-contains-strings-of-another-cell-array
             
-            x = false(size(self.parname));
+            x = false(size(obj.parname));
             for k=1:numel(disabled_parameters)
-                x = x | strcmp(self.parname,disabled_parameters{k});
+                x = x | strcmp(obj.parname,disabled_parameters{k});
             end
-            enabled_parameters = self.parname;
+            enabled_parameters = obj.parname;
             enabled_parameters(x) = [];
             
             gui = interactive_methods_gui;
@@ -134,24 +134,24 @@ classdef InteractiveMethod < dynamicprops
             gui_width = floor(gui.controls_max_width / parN);
             
             k = 1;
-            for i = 1:length(self.parname)  
-                if any(strcmp(self.parname{i}, enabled_parameters))
-                    if self.numeric(i)
-                        parameter_callback = @self.update_numeric_parameter;
+            for i = 1:length(obj.parname)  
+                if any(strcmp(obj.parname{i}, enabled_parameters))
+                    if obj.numeric(i)
+                        parameter_callback = @obj.update_numeric_parameter;
                     else
-                        parameter_callback = @self.update_string_parameter;
+                        parameter_callback = @obj.update_string_parameter;
                     end
 
                     gui_handles{i} = uicontrol( ...
-                        'Parent', figure, 'Style', 'edit', 'TooltipString', self.parname{i}, ...
-                        'FontSize', gui.fontsize, 'String', num2str(self.current{i}), ...
+                        'Parent', figure, 'Style', 'edit', 'TooltipString', obj.parname{i}, ...
+                        'FontSize', gui.fontsize, 'String', num2str(obj.current{i}), ...
                         'Callback', parameter_callback, ...
                         'Position', [anchor(1)+(k-1)*(gui_width+gui.gap), anchor(2), gui_width, gui.height] ...
                     );
                     k = k+1;
 
-                    self.set_parameter_index(gui_handles{i}, i);
-%                     self.callback(); % todo: temporary, this is not a good idea if values for (source, event) are used!
+                    obj.set_parameter_index(gui_handles{i}, i);
+%                     obj.callback(); % todo: temporary, this is not a good idea if values for (source, event) are used!
                 end
             end
         end
@@ -160,7 +160,7 @@ classdef InteractiveMethod < dynamicprops
             % Prompt own parameters in the MATLAB commandline
             %   User enters string, also show default values
             %       - If empty string (i.e. just pressed enter) -> use default values
-            %       - If format ~ 156 156 stuff 156 -> self.current = {156, 156, 'stuff', 156}; assume order; to skip a value, use ~
+            %       - If format ~ 156 156 stuff 156 -> obj.current = {156, 156, 'stuff', 156}; assume order; to skip a value, use ~
             %       - If 'help' -> show some help
             %       - If par1 156 par7 156 -> query index by parname, prompt again if specified parname not found
             %       (Would be nice: - Also parse arrays ~ MATLAB syntax, i.e. ignore spaces within brackets)
@@ -180,41 +180,41 @@ classdef InteractiveMethod < dynamicprops
     end
     
     methods(Access = protected)
-        function setup(self)
-            if ~isempty(self.methodh)
-               fs = functions(self.methodh);
+        function setup(obj)
+            if ~isempty(obj.methodh)
+               fs = functions(obj.methodh);
                
                switch fs.type
                    case 'anonymous'
                        [tokens] = regexp(fs.function, '@\(([a-zA-Z0-9,~_]+)\)(.*)', 'tokens');        
                        
-                        if isempty(self.parname)
+                        if isempty(obj.parname)
                             % To get 'pars': extract contents of brackets "@(...)" into a cell array of strings <- second token
-                            self.parname = split(tokens{1}{1}, ',');
-                            self.parname = self.parname(2:end); % First parameter doesn't need an interface (it's the slice or cube)
+                            obj.parname = split(tokens{1}{1}, ',');
+                            obj.parname = obj.parname(2:end); % First parameter doesn't need an interface (it's the slice or cube)
                             % To get 'func': remove "@(...) " from fs.func <- first token
                         end
-                        self.method = tokens{1}{2};    
+                        obj.method = tokens{1}{2};    
                         
                         % TODO: string parameter min/max should just be ''
                         
                         
                    case {'simple', 'scopedfunction', 'nested'}
-                        self.method = fs.function;
+                        obj.method = fs.function;
                    otherwise
                        error('What even is a %s function: %s', fs.type, fs.function)
                 end
                
-                if isempty(self.minimum)
-                   self.minimum = num2cell(-Inf * ones(size(self.default)));
+                if isempty(obj.minimum)
+                   obj.minimum = num2cell(-Inf * ones(size(obj.default)));
                 end
 
-                if isempty(self.maximum)
-                   self.maximum = num2cell(Inf * ones(size(self.default)));
+                if isempty(obj.maximum)
+                   obj.maximum = num2cell(Inf * ones(size(obj.default)));
                 end
 
-                for i = 1:length(self.default)
-                    self.numeric(i) = isnumeric(self.default{i});
+                for i = 1:length(obj.default)
+                    obj.numeric(i) = isnumeric(obj.default{i});
                 end
             else
                 error('Function handle is empty also make this error more informative pls')

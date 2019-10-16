@@ -4,12 +4,12 @@ classdef Cube < dynamicprops
 Description:
 ============
     - Image cubes are Z-stacks of XY images (images are confusing, so can be YX too, but that doesn't matter really)
-        * self.cube                     3d matrix
-    - Additional data in self.data
-        * self.data.zpos                physical position of each cube in the stack
+        * obj.cube                     3d matrix
+    - Additional data in obj.data
+        * obj.data.zpos                physical position of each cube in the stack
                                             does not take into account the units; this is up to you & common sense
         * ...
-    - Optional metadata in self.meta
+    - Optional metadata in obj.meta
 
     
 File format & i/o:
@@ -24,7 +24,7 @@ File format & i/o:
         path                                                        % file path
         name = 'cube'                                               % measurement name
         desc = '...'                                                % measurement description
-        cube = zeros(1,1,1);                                        % 3d dataset in orientation (X,Y,Z)  (don't make self.cube() method to access self.data.cube() for performance & memory management reasons; otherwise it wil get copied multiple times when referenced!)
+        cube = zeros(1,1,1);                                        % 3d dataset in orientation (X,Y,Z)  (don't make obj.cube() method to access obj.data.cube() for performance & memory management reasons; otherwise it wil get copied multiple times when referenced!)
         data = struct();                                            % cell array of generic data (vectors & matrices)
         meta = struct();                                            % metadata struct    
     end
@@ -49,20 +49,20 @@ File format & i/o:
     end
     
     methods(Access = public)
-        function check_path(self)
-            if ~isfile(self.path) && ~isfile(sprintf('%s.json', self.path)) && ~isempty(self.path)
-                error('File does not exist: %s', self.path);
+        function check_path(obj)
+            if ~isfile(obj.path) && ~isfile(sprintf('%s.json', obj.path)) && ~isempty(obj.path)
+                error('File does not exist: %s', obj.path);
             end
         end
         
-        function sobj = saveobj(self)
-            sobj = self;  
+        function sobj = saveobj(obj)
+            sobj = obj;  
             sobj.unload_data()                              
         end
         
         
         
-        function save_data(self, path, options)
+        function save_data(obj, path, options)
             switch nargin
                 case 1
                     path = '';
@@ -71,32 +71,32 @@ File format & i/o:
                     options = struct();
             end
             
-            [do_save, path, ~] = self.resolve_save(path, options);
+            [do_save, path, ~] = obj.resolve_save(path, options);
 
             if do_save
                 path = remove_extension(path);
 
                 meta_struct = {};
-                meta_struct.name = self.name;
-                meta_struct.desc = self.desc;
+                meta_struct.name = obj.name;
+                meta_struct.desc = obj.desc;
 
-                % For each dataset (self.cube and all datasets in self.data), return
+                % For each dataset (obj.cube and all datasets in obj.data), return
                 %       - dataset name
                 %       - size vector
                 %       - datatype
 
-                dataspec = cell(length(self.data)+1,1);
+                dataspec = cell(length(obj.data)+1,1);
 
                 % Cube data
-                dataspec{1} = struct('name', 'cube', 'size', size(self.cube), 'type', class(self.cube));      
+                dataspec{1} = struct('name', 'cube', 'size', size(obj.cube), 'type', class(obj.cube));      
 
                 % Arbitrary data
-                datasets = fields(self.data);
+                datasets = fields(obj.data);
                 for i = 1:length(datasets)
                     d = datasets{i};
                     dataspec{1+i} = struct( ...
-                        'name', datasets{i}, 'size', size(self.data.(d)), ...
-                        'type', class(self.data.(d)), 'mfmt', self.mfmt);
+                        'name', datasets{i}, 'size', size(obj.data.(d)), ...
+                        'type', class(obj.data.(d)), 'mfmt', obj.mfmt);
                 end
 
                 % Remove empty fields from dataspec
@@ -104,13 +104,13 @@ File format & i/o:
 
                 for i = 1:length(dataspec)
                     try
-                        if prod(dataspec{i}.size) > self.minsize 
+                        if prod(dataspec{i}.size) > obj.minsize 
                             if strcmp(dataspec{i}.name, 'cube') % todo: maybe reverse order of check; never try to save cube in .json
                                 id = 'cube';
-                                data_i = self.cube;
+                                data_i = obj.cube;
                             else
                                 id = sprintf('data%s', num2str(i-2));  % i.e. cube is dataset 0;
-                                data_i = self.data.(dataspec{i}.name);
+                                data_i = obj.data.(dataspec{i}.name);
                             end
                             
                             if ~isfield(dataspec{i}, 'mfmt')
@@ -125,7 +125,7 @@ File format & i/o:
                             fwrite(fid, data_i, dataspec{i}.type, dataspec{i}.mfmt);
                             fclose(fid);
                         else
-                            dataspec{i}.(dataspec{i}.name) = self.data.(dataspec{i}.name);
+                            dataspec{i}.(dataspec{i}.name) = obj.data.(dataspec{i}.name);
                             dataspec{i} = rmfield(dataspec{i}, {'size', 'type', 'name'});                              
                         end
                     catch err
@@ -134,7 +134,7 @@ File format & i/o:
                 end
 
                 meta_struct.data = dataspec;
-                meta_struct.meta = self.meta;  
+                meta_struct.meta = obj.meta;  
 
                 fid = fopen(sprintf('%s.json', path), 'w+');
                 fprintf(fid, '%s', prettyjson(jsonencode(meta_struct)));
@@ -144,7 +144,7 @@ File format & i/o:
     end
     
     methods
-        function self = Cube(path, do_load)
+        function obj = Cube(path, do_load)
             switch nargin
                 case 0
                     path = '';
@@ -154,101 +154,66 @@ File format & i/o:
             end
 
             % Cast path to char
-            self.path = char(path);
+            obj.path = char(path);
             
-            self.check_path
+            obj.check_path
             
-            self.im = interactive_methods;
+            obj.im = interactive_methods;
             
             if do_load
-                self.load_data
+                obj.load_data
             end
         end        
              
-        function unload(self)   % todo: refactor everything to load / unload!
+        function unload(obj)   % todo: refactor everything to load / unload!
             % Flush data from memory, but keep the interface & metadata
-            if self.is_loaded
-                self.cube = zeros(1,1,1);
-                self.data = {};
-                close(self.figures)
+            if obj.is_loaded
+                obj.cube = zeros(1,1,1);
+                obj.data = {};
+                close(obj.figures)
                 
-                self.is_loaded = false;
+                obj.is_loaded = false;
             end
         end
         
-        function unload_data(self)
-           self.unload(); 
+        function unload_data(obj)
+           obj.unload(); 
         end
         
-        function z = position(self)
-            z = self.data.zpos;
+        function z = position(obj)
+            z = obj.data.zpos;
         end
         
-        function z = zpos(self)
-            if isfield(self.data, 'zpos')
-                z = self.data.zpos;
+        function z = zpos(obj)
+            if isfield(obj.data, 'zpos')
+                z = obj.data.zpos;
             else
-                [~,~,Nz] = size(self.cube);
+                [~,~,Nz] = size(obj.cube);
                 z = 1:Nz;
             end
         end
         
-        function zprof(self, loc, do_fwhm)
+        function zprof(obj, loc, do_fwhm)
             % Interactive z-profile window
             % todo: doesn't work anymore
             switch nargin 
                 case 1
-                    loc = floor(length(self.zpos/2));
+                    loc = floor(length(obj.zpos/2));
                     do_fwhm = true;
                 case 2
                     do_fwhm = true;
             end
            
-            live_A_scan(self.cube, loc, self.zpos, 5, 1, do_fwhm, false);
+            live_A_scan(obj.cube, loc, obj.zpos, 5, 1, do_fwhm, false);
         end
         
-        function [slice, raw_slice] = slice(self, k, axis)
+        function [slice, raw_slice] = slice(obj, k, axis)
             % todo: this will probably break if GUI is not initialized!
-            raw_slice = self.im.selectors.slice.selected.do(self.cube, k, axis);
-            slice = self.im.selectors.postprocess.selected.do(raw_slice);
+            raw_slice = obj.im.selectors.slice.selected.do(obj.cube, k, axis);
+            slice = obj.im.selectors.postprocess.selected.do(raw_slice);
         end
-                
-%         function sf = slice(self, plane, M, method, args, f)
-%             % Slice display (scroll to scan through the cube)
-%             switch nargin
-%                 case 1
-%                     plane = 'XY';
-%                     M = 100;
-%                     method = @normalize_slice;
-%                     args = struct();
-%                     f = figure('Name', sprintf('%s (%s)', self.name, plane));
-%                     self.figures = [self.figures, f];
-%                 case 2
-%                     M = 100;
-%                     method = @normalize_slice;
-%                     args = struct();
-%                     f = figure('Name', sprintf('%s (%s)', self.name, plane));
-%                     self.figures = [self.figures, f];
-%                 case 3
-%                     method = @normalize_slice;
-%                     args = struct();
-%                     f = figure('Name', sprintf('%s (%s)', self.name, plane));
-%                     self.figures = [self.figures, f];
-%             end
-%             
-%             switch lower(plane)
-%                 case {'xz', 'zx'}
-%                     slice_cube = permute(self.cube, [3,1,2]);
-%                 case {'yz', 'zy'}
-%                     slice_cube = permute(self.cube, [3,2,1]);
-%                 otherwise
-%                     slice_cube = self.cube;
-%             end
-%   
-%             sf = slicefig(slice_cube, f, method, args, M); % todo: should have same contrast stuff as ortho...
-%         end
         
-        function of = ortho(self, M, z, slice_method)
+        function of = ortho(obj, M, z)
             %{ 
                 Orthographic views of the cube
                     Scan over z: Scroll
@@ -265,7 +230,7 @@ File format & i/o:
             end
             
             if isnan(M) && isnan(z)
-                [~, cube_Ny, cube_Nz] = size(self.cube);
+                [~, cube_Ny, cube_Nz] = size(obj.cube);
                 r = monitor_resolution();
                 z = min([2, r(2) / cube_Nz * (2/5)]); % Default: XZ image -> 1/3 of max monitor height or 2 if too large
                 if z == 2
@@ -277,15 +242,15 @@ File format & i/o:
                 z = 2;
             end
             
-            f = figure('Name', self.name, 'visible', 'off');
-            self.figures = [self.figures, f];
+            f = figure('Name', obj.name, 'visible', 'off');
+            obj.figures = [obj.figures, f];
             
-            of = orthofig(self, f, M, z);
+            of = orthofig(obj, f, M, z);
         end
         
-        function explore(self)
+        function explore(obj)
             % Open the folder containing current file in explorer
-            path_parts = strsplit(self.path, '/');
+            path_parts = strsplit(obj.path, '/');
             folder = strjoin(path_parts(1:end-1), '/');
             
             if isfolder(folder)
@@ -295,11 +260,11 @@ File format & i/o:
             end
         end
         
-        function load_data(self)  % todo: refactor everything to load / unload!
-            [folder, file, ~] = fileparts(self.path);            
+        function load_data(obj)  % todo: refactor everything to load / unload!
+            [folder, file, ~] = fileparts(obj.path);            
             header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));
             
-            self.name = header.name; self.desc = header.desc; self.meta = header.meta;
+            obj.name = header.name; obj.desc = header.desc; obj.meta = header.meta;
             
             for i = 1:length(header.data)
                 try
@@ -308,7 +273,7 @@ File format & i/o:
                     d = header.data;
                 end
                 if isfield(d,'name') && isfield(d,'data')
-                    self.data.(d.name) = d.data;
+                    obj.data.(d.name) = d.data;
                 elseif isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
                     fid = fopen([folder '/' d.path], 'rb+');
                     
@@ -316,8 +281,8 @@ File format & i/o:
                         machinefmt = d.mfmt;
                     catch err
                         warning(err.message)
-                        sprintf('Default machinefmt: %s', self.mfmt);
-                        machinefmt = self.mfmt;
+                        sprintf('Default machinefmt: %s', obj.mfmt);
+                        machinefmt = obj.mfmt;
                     end
                     
                     switch lower(machinefmt)
@@ -332,20 +297,20 @@ File format & i/o:
                     
                     switch d.name
                         case 'cube'
-                            self.cube = A;
+                            obj.cube = A;
                         otherwise
-                            self.data.A = A;
+                            obj.data.A = A;
                     end                    
                 elseif length(fields(d)) == 1
                     dfields = fields(d);
-                    self.data.(dfields{1}) = d.(dfields{1});
+                    obj.data.(dfields{1}) = d.(dfields{1});
                 else
                     warning('Unrecognized specification for data field %s', d);                    
                 end
             end            
         end
         
-        function [do_save, path, options] = resolve_save(self, path, options)
+        function [do_save, path, options] = resolve_save(obj, path, options)
             do_save = true;
             
             switch nargin
@@ -357,7 +322,7 @@ File format & i/o:
             end
             
             if isempty(path)
-                    path = remove_extension(self.path);
+                    path = remove_extension(obj.path);
             end
             
             if exist(path, 'file') == 2
@@ -370,7 +335,7 @@ File format & i/o:
             end
         end
         
-        function save(self, fmt, process, path, options)
+        function save(obj, fmt, process, path, options)
             switch nargin
                 case 1
                     fmt = ''; process = @pass_data; path = ''; options = struct();
@@ -384,13 +349,13 @@ File format & i/o:
             
             switch lower(fmt)
                 case {'tif', 'tiff'}
-                    tempCube = tifCube(self.path, false);
+                    tempCube = tifCube(obj.path, false);
                 case {'', '.cube', '.json'}
-                    tempCube = Cube(self.path, false);
+                    tempCube = Cube(obj.path, false);
             end
 
             try
-                tempCube.cube = process(self.cube);
+                tempCube.cube = process(obj.cube);
             catch err
                 warning(err.identifier, '%s', err.message);
             end

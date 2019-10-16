@@ -1,17 +1,17 @@
 classdef p2p_distance < cube_ROIs
     methods
-        function [D, R, S, A] = distances(self, MinPeakProminence)
+        function [D, R, S, A] = distances(obj, MinPeakProminence)
             switch nargin
                 case 2
-                    self.MinPeakProminence = MinPeakProminence;                
+                    obj.MinPeakProminence = MinPeakProminence;                
             end
-%             self.I.load_data % todo make this a method again
+%             obj.I.load_data % todo make this a method again
             
             D = []; R = []; S = []; A = [];
             
             j = 1;
-            for i = 1:length(self.ROIs)
-                [locs, pks] = self.ROIs{i}.get_peaks(self.MinPeakProminence);
+            for i = 1:length(obj.ROIs)
+                [locs, pks] = obj.ROIs{i}.get_peaks(obj.MinPeakProminence);
                 
                 if length(locs) > 1
                     % Get all combination distances
@@ -24,7 +24,7 @@ classdef p2p_distance < cube_ROIs
                     for combo = 1:combos
                         dist = positions(combo,:);
                         inty = intensities(combo,:);
-                        Di(combo) = abs(single(self.z(dist(1))) - single(self.z(dist(2))))*1e-3;
+                        Di(combo) = abs(single(obj.z(dist(1))) - single(obj.z(dist(2))))*1e-3;
                         Ri(combo) = single(max(inty)) / single(min(inty));
                         Si(combo) = i;
                         j = j+1;
@@ -35,13 +35,13 @@ classdef p2p_distance < cube_ROIs
             end            
         end
         
-        function [Df, Rf, Sf, Af] = filtered_distances(self, MinPeakProminence)
+        function [Df, Rf, Sf, Af] = filtered_distances(obj, MinPeakProminence)
             switch nargin
                 case 2
-                    self.MinPeakProminence = MinPeakProminence;                
+                    obj.MinPeakProminence = MinPeakProminence;                
             end
             
-            [D,R,S,A] = self.distances(self.MinPeakProminence);
+            [D,R,S,A] = obj.distances(obj.MinPeakProminence);
             
             Sf = []; Sm = [];
             
@@ -78,13 +78,13 @@ classdef p2p_distance < cube_ROIs
             
         end
         
-        function profiles(self)
+        function profiles(obj)
             figure;
-            self.I.load_data
-            zz = (single(self.z)-single(self.z(1)))*1e-3;            
+            obj.I.load_data
+            zz = (single(obj.z)-single(obj.z(1)))*1e-3;            
             
-            for i = 1:length(self.ROIs)
-                plot(zz, normalize(self.ROIs{i}.profile))
+            for i = 1:length(obj.ROIs)
+                plot(zz, normalize(obj.ROIs{i}.profile))
                 hold on
             end    
             
@@ -94,24 +94,24 @@ classdef p2p_distance < cube_ROIs
             xlim(single([0, max(zz)]))
         end
         
-        function [D,R,clusters,centroids] = cluster(self, ClusterN, Cluster2D, MinPeakProminence)
+        function [D,R,clusters,centroids] = cluster(obj, ClusterN, Cluster2D, MinPeakProminence)
             switch nargin
                 case 1
                     ClusterN = 3;
                     Cluster2D = false;
-                    self.MinPeakProminence = 0.1;
+                    obj.MinPeakProminence = 0.1;
                 case 2
                     Cluster2D = false;
-                    self.MinPeakProminence = 0.1;
+                    obj.MinPeakProminence = 0.1;
                 case 3
-                    self.MinPeakProminence = 0.1;
+                    obj.MinPeakProminence = 0.1;
                 case 4
-                    self.MinPeakProminence = MinPeakProminence;
+                    obj.MinPeakProminence = MinPeakProminence;
             end
             figure;
-            self.I.load_data
+            obj.I.load_data
              
-            [D,R,S] = self.distances(self.MinPeakProminence);
+            [D,R,S] = obj.distances(obj.MinPeakProminence);
             if ~isempty(D)
                 maxD = 1.05*max(D); maxR = 1.05*max(R);
             else
