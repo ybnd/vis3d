@@ -54,6 +54,25 @@ classdef InteractiveMethodSelector < dynamicprops
             end
         end
         
+        function value = get(obj, parameter)
+            % Set parameter to value for all InteractiveMethods in obj.items
+            value = struct();
+            
+            options = fields(obj.items);
+            for i = 1:length(options)
+                item = obj.items.(options{i});
+                value.(options{i}) = item.get(parameter);
+            end
+        end
+        
+        function reset(obj, parameter)
+            options = fields(obj.items);
+            for i = 1:length(options)
+                item = obj.items.(options{i});
+                item.reset(parameter);
+            end
+        end
+        
         function gui_handle = build_gui(obj, figure, anchor, callback, disabled_parameters)
             switch nargin
                 case 4
@@ -100,7 +119,7 @@ classdef InteractiveMethodSelector < dynamicprops
                 end
             catch err
                 % todo: Try not to even 'try' this when GUI not buily completely yet?
-                warning(err.message);
+                % warning(err.message);
             end
             obj.controls = selected.build_gui(obj.figure, obj.controls_anchor, obj.callback, obj.disabled_parameters);
             set(obj.gui_handle, 'UserData', selected);

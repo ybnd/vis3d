@@ -29,7 +29,7 @@ File format & i/o:
         meta = struct();                                            % metadata struct    
     end
     properties(Hidden = true)
-        im
+        interactive_methods
         filesize                                                    % size of file in bytes
         filesize_gb                                                 % size of file in GB
         figures = [];
@@ -64,7 +64,7 @@ File format & i/o:
             
             obj.check_path
             
-            obj.im = interactive_methods;
+            obj.interactive_methods = interactive_methods;
             
             if do_load
                 obj.load_data
@@ -348,18 +348,6 @@ File format & i/o:
             sf = slicefig(self, f, M, slice_axis); % todo: should have same contrast stuff as ortho...
         end
         
-        function explore(obj)
-            % Open the folder containing current file in explorer
-            path_parts = strsplit(obj.path, '/');
-            folder = strjoin(path_parts(1:end-1), '/');
-            
-            if isfolder(folder)
-                winopen(folder)
-            else
-                warning('Folder does not exist: %s', folder);
-            end
-        end
-        
         function zprof(obj, loc, do_fwhm)
             % Interactive z-profile window
             % todo: doesn't work anymore
@@ -372,6 +360,18 @@ File format & i/o:
             end
            
             live_A_scan(obj.cube, loc, obj.zpos, 5, 1, do_fwhm, false);
+        end
+        
+        function explore(obj)
+            % Open the folder containing current file in explorer
+            path_parts = strsplit(obj.path, '/');
+            folder = strjoin(path_parts(1:end-1), '/');
+            
+            if isfolder(folder)
+                winopen(folder)
+            else
+                warning('Folder does not exist: %s', folder);
+            end
         end
     end
     
@@ -391,9 +391,54 @@ File format & i/o:
         end
         
         function [slice, raw_slice] = slice(obj, k, axis)
-            % todo: this will probably break if GUI is not initialized!
-            raw_slice = obj.im.selectors.slice.selected.do(obj.cube, k, axis);
-            slice = obj.im.selectors.postprocess.selected.do(raw_slice);
+            raw_slice = obj.interactive_methods.selectors.slice.selected.do(obj.cube, k, axis);
+            slice = obj.interactive_methods.selectors.postprocess.selected.do(raw_slice);
+        end
+        
+        function [slice, postprocess] = get_selectors(obj)
+            slice = obj.interactive_methods.selectors.slice;
+            postprocess = obj.interactive_methods.selectors.postprocess;
+        end
+        
+        function im_select(obj, selector, method) 
+            obj.interactive_methods.selectors.(selector).select(method);
+        end
+        
+        function im_set(obj, varargin)
+            for i = 1:length(fields(obj.interactive_methods.selectors))
+               selector_fields = fields(obj.interactive_methods.selectors);
+               selector = obj.interactive_methods.selectors.(selector_fields{i});
+               
+               for j = 1:(length(varargin)/2)
+                   selector.set(varargin{2*(j-1)+1}, varargin{2*(j-1)+2})
+               end
+            end
+        end
+        
+        function im_reset(obj, varargin)
+            for i = 1:length(fields(obj.interactive_methods.selectors))
+               selector_fields = fields(obj.interactive_methods.selectors);
+               selector = obj.interactive_methods.selectors.(selector_fields{i});
+               
+               for j = 1:length(varargin)
+                   selector.reset(varargin{j})
+               end
+            end
+        end
+        
+        function [value] = im_get(obj, varargin)
+            % todo: called without arguments -> should give overview of all IMS & IM + current arguments
+            % todo: would be more useable if output was a table instead of a struct
+            for i = 1:length(fields(obj.interactive_methods.selectors))
+               value = struct();
+               
+               selector_fields = fields(obj.interactive_methods.selectors);
+               selector = obj.interactive_methods.selectors.(selector_fields{i});
+               
+               for j = 1:length(varargin)
+                   value.(selector_fields{i}).(fieldsafe(varargin{j})) = selector.get(varargin{j});
+               end
+            end
         end
     end
 end

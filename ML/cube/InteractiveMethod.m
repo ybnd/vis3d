@@ -84,6 +84,27 @@ classdef InteractiveMethod < dynamicprops
             end
         end
         
+        function value = get(obj, parameter)
+            if any(strcmp(parameter, obj.parname))
+                i = find(not(cellfun('isempty', strfind(obj.parname, parameter)))); % https://nl.mathworks.com/matlabcentral/answers/2015-find-index-of-cells-containing-my-string
+%                 if class(value) == class(obj.default{i})     % todo: with check: too stringent
+                value = obj.current{i};    % todo: without check: too loose
+%                 end
+            else
+                value = '';
+            end
+        end
+        
+        function reset(obj, parameter)
+            if any(strcmp(parameter, obj.parname))
+                i = find(not(cellfun('isempty', strfind(obj.parname, parameter)))); % https://nl.mathworks.com/matlabcentral/answers/2015-find-index-of-cells-containing-my-string
+%                 if class(value) == class(obj.default{i})     % todo: with check: too stringent
+                obj.current{i} = obj.default{i};    % todo: without check: too loose
+%                 end
+            end
+        end
+        
+        
         function update_numeric_parameter(obj, source, ~)
             i = obj.get_parameter_index(source); % Parameter index (see InteractiveMethod.build_gui)         
             new_value = str2num(source.String);

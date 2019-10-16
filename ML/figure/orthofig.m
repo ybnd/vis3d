@@ -77,8 +77,7 @@ classdef orthofig < cubefig
             
             obj.w_img = gui.selector_width + gui.controls_max_width + 3*gui.gap;
 
-            obj.slice = obj.C.im.selectors.slice;
-            obj.postprocess = obj.C.im.selectors.postprocess;
+            [obj.slice,obj.postprocess] = obj.C.get_selectors();
             
             obj.slice.build_gui(obj.f, [obj.border, 47], @obj.ui_update_images, {'position', 'axis'});
             obj.postprocess.build_gui(obj.f, [obj.border, 47-gui.height-gui.gap], @obj.ui_update_images, {'global range'});
