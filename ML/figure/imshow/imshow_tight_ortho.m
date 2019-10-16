@@ -8,14 +8,14 @@ function [handle_XY, handle_XZ, handle_YZ, overlay, pad] = imshow_tight_ortho(..
     default_pad = [5,5,5,5];
     
     switch nargin
-        case 4
+        case 2
             M = 0.3;
             z_ratio = 1;
             pad = [0,0,0,0] + default_pad;
-        case 5
+        case 3
             z_ratio = 1;
             pad = [0,0,0,0] + default_pad;
-        case 6
+        case 4
             pad = [0 0 0 0] + default_pad;
     end
     
