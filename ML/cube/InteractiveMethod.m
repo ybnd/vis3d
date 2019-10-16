@@ -114,15 +114,9 @@ classdef InteractiveMethod < dynamicprops
                     disabled_parameters = {};               
             end
             
-            global gui
-            if isempty(gui)
-                interactive_methods;
-            end
-            
             self.set_callback(callback);
             
-            
-            
+
             % Remove disabled parameters from self.parname
             % https://nl.mathworks.com/matlabcentral/answers/298884-remove-cell-that-contains-strings-of-another-cell-array
             
@@ -132,6 +126,8 @@ classdef InteractiveMethod < dynamicprops
             end
             enabled_parameters = self.parname;
             enabled_parameters(x) = [];
+            
+            gui = interactive_methods_gui;
             
             gui_handles = cell(size(enabled_parameters));      
             parN = length(enabled_parameters);
@@ -203,7 +199,7 @@ classdef InteractiveMethod < dynamicprops
                         % TODO: string parameter min/max should just be ''
                         
                         
-                   case {'simple', 'scopedfunction'}
+                   case {'simple', 'scopedfunction', 'nested'}
                         self.method = fs.function;
                    otherwise
                        error('What even is a %s function: %s', fs.type, fs.function)

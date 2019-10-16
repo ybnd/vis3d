@@ -1,7 +1,9 @@
 function [handle_XY, handle_XZ, handle_YZ, overlay, pad] = imshow_tight_ortho(...
-    image, slice, slice_method, slice_args, M, z_ratio, pad)
+    cube, slice, M, z_ratio, pad)
 % https://nl.mathworks.com/matlabcentral/answers/100366-how-can-i-remove-the-grey-borders-from-the-imshow-plot-in-matlab-7-4-r2007a
     % pad: [bottom, top, left, right] -> dpos [left edge, bottom edge, width, height]
+    
+    % Should just have this thing in orthofig instead
 
     default_pad = [5,5,5,5];
     
@@ -22,11 +24,11 @@ function [handle_XY, handle_XZ, handle_YZ, overlay, pad] = imshow_tight_ortho(..
     dfpos = [0 0 pad(3)+pad(4) pad(1)+pad(2)];
     dhpos = [pad(3) pad(1) 0 0];
     
-    XY = slice_method(image,slice(3),'z',slice_args);
-    XZ = slice_method(permute(image,[1,3,2]),'y',slice(2),slice_args);
-    YZ = slice_method(permute(image,[3,2,1]),'x',slice(1),slice_args);
+    [XY, ~] = cube.slice(slice(3),'z');
+    [XZ, ~] = cube.slice(slice(2),'y');
+    [YZ, ~] = cube.slice(slice(1),'x');
     
-    [Ny,Nx,Nz] = size(image);
+    [Ny,Nx,Nz] = size(cube.cube);
     X = Nx*M;
     Y = Ny*M;
     Z = Nz*M*z_ratio;

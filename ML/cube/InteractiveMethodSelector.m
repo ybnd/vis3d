@@ -9,7 +9,7 @@ classdef InteractiveMethodSelector < dynamicprops
         disabled_parameters = {};
     end
     
-    properties(Hidden=true)        
+    properties(Hidden=true)  
         figure;
         callback = false;
         gui_handle = false;
@@ -21,18 +21,25 @@ classdef InteractiveMethodSelector < dynamicprops
         function obj = InteractiveMethodSelector(name, items)
             obj.name = name;
             obj.items = items;
+            
+            item_fields = fields(items);
+            obj.select(item_fields{1});            
         end
         
         function selected = select(obj, item)
             % Sanity check: item in obj.item.field?
             if isfield(obj.items, item)
                 selected = obj.items.(item);
-                obj.selected = selected;
-                if ishandle(obj.figure)
-                    obj.replace_controls(selected)
+                try
+                    obj.selected = selected;
+                    if ishandle(obj.figure)
+                        obj.replace_controls(selected)
+                    end
+                    set(obj.gui_handle, 'Value', find(strcmp(fields(obj.items),item))) % Update UI (e.g. handle explicit calls 'from outside')
+                    obj.callback() % todo: this may not be a good idea if values for (source, event) are actually used!
+                catch err
+                    %todo: should not show warnings if GUI has not been built yet!
                 end
-                set(obj.gui_handle, 'Value', find(strcmp(fields(obj.items),item))) % Update UI (e.g. handle explicit calls 'from outside')
-                obj.callback() % todo: this may not be a good idea if values for (source, event) are actually used!
             else
                 warning('Requested field %s does not exist.', item)
             end
@@ -53,12 +60,8 @@ classdef InteractiveMethodSelector < dynamicprops
                     disabled_parameters = {};               
             end
             
-            global gui
-            if isempty(gui)
-                interactive_methods;
-            end
-            
             obj.disabled_parameters = disabled_parameters;
+            gui = interactive_methods_gui;
             
             gui_handle = uicontrol( ...
                 'Parent', figure, 'Style', 'popupmenu', 'TooltipString', obj.name, ...

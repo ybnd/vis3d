@@ -47,7 +47,7 @@ classdef orthofig < cubefig
             end
             
             self.C = C;
-            self.size = size(C);
+            self.size = size(C.cube);
             
             self.f = fig; 
             
@@ -60,7 +60,7 @@ classdef orthofig < cubefig
             
             self.slice_method = slice_method;
             
-            self.range = [rmin(C), rmax(C)];
+            self.range = [rmin(C.cube), rmax(C.cube)];
             self.build;
         end
         
@@ -70,8 +70,7 @@ classdef orthofig < cubefig
             Nx = self.size(1); Ny = self.size(2); Nz = self.size(3);  
             
             [self.image.XY, self.image.XZ, self.image.YZ, self.image.overlay, self.pad] = imshow_tight_ortho( ...
-                self.C, self.current_slice, self.slice_method, self.slice_args, ...
-                self.M, self.z_ratio, self.pad ...
+                self.C, self.current_slice, self.M, self.z_ratio, self.pad ...
             );
         
             aXY = copyobj(self.image.XY.Parent, self.f); cla(aXY);
@@ -81,14 +80,12 @@ classdef orthofig < cubefig
             ap = get(aXY, 'Position');
             w_xy = ap(3);   % width of XY image
             
-            interactive_methods;
-            global im
-            global gui
+            gui = interactive_methods_gui;
             
             self.w_img = gui.selector_width + gui.controls_max_width + 3*gui.gap;
 
-            self.slice = im.selectors.slice;
-            self.postprocess = im.selectors.postprocess;
+            self.slice = self.C.im.selectors.slice;
+            self.postprocess = self.C.im.selectors.postprocess;
             
             self.slice.build_gui(self.f, [self.border, 47], @self.ui_update_images, {'position', 'axis'});
             self.postprocess.build_gui(self.f, [self.border, 47-gui.height-gui.gap], @self.ui_update_images, {'global range'});
@@ -144,8 +141,6 @@ classdef orthofig < cubefig
                 'ui_db_floor', [self.border + self.w_db, self.border, self.w_img - self.w_db-1,20],    ...
                 'ui_db_ceil', [self.border+self.w_db, self.border+1+20, self.w_img-self.w_db-1, 20]    ...
             );
-            images = [self.image.XY.Parent, self.image.XZ.Parent, self.image.YZ.Parent];
-            
             
         
 %             self.imagecontrol = postprocon(self, positions, @self.ui_update_images, images);
@@ -167,10 +162,7 @@ classdef orthofig < cubefig
                 'Value', self.show_histograms, 'callback', @self.ui_toggle_histograms);
             
                
-            
-            
-            
-            
+
             self.ui_update_images;
             self.place_overlay;
             self.ui_update_histograms;
@@ -196,8 +188,10 @@ classdef orthofig < cubefig
 %                 self.image.XY.set('CData', self.image.temp.XY);
 %             end
 
-            self.image.temp.rawXY = self.slice.do(self.C,self.current_slice(3),'z');
-            self.image.temp.XY = self.postprocess.do(self.image.temp.rawXY);
+%             self.image.temp.rawXY = self.slice.do(self.C,self.current_slice(3),'z');
+%             self.image.temp.XY = self.postprocess.do(self.image.temp.rawXY);
+
+            [self.image.temp.XY, self.image.temp.rawXY] = self.C.slice(self.current_slice(3),'z');
             self.image.XY.set('CData',self.image.temp.XY);
 
             self.place_overlay;
@@ -218,9 +212,11 @@ classdef orthofig < cubefig
 %             else
 %                 self.image.XZ.set('CData', self.image.temp.XZ);
 %             end
-            
-            self.image.temp.rawXZ = self.slice.do(self.C,self.current_slice(2),'y');
-            self.image.temp.XZ = self.postprocess.do(self.image.temp.rawXZ);
+%             
+%             self.image.temp.rawXZ = self.slice.do(self.C,self.current_slice(2),'y');
+%             self.image.temp.XZ = self.postprocess.do(self.image.temp.rawXZ);
+                        
+            [self.image.temp.XZ, self.image.temp.rawXZ] = self.C.slice(self.current_slice(2),'y');
             self.image.XZ.set('CData', self.image.temp.XZ);
             
             self.place_overlay;
@@ -242,8 +238,10 @@ classdef orthofig < cubefig
 %                 self.image.YZ.set('CData', self.image.temp.YZ);
 %             end
 
-            self.image.temp.rawYZ = self.slice.do(self.C,self.current_slice(1),'x');
-            self.image.temp.YZ = self.postprocess.do(self.image.temp.rawYZ);   
+%             self.image.temp.rawYZ = self.slice.do(self.C,self.current_slice(1),'x');
+%             self.image.temp.YZ = self.postprocess.do(self.image.temp.rawYZ);   
+            
+            [self.image.temp.YZ, self.image.temp.rawYZ] = self.C.slice(self.current_slice(1),'x');
             self.image.YZ.set('CData', self.image.temp.YZ);
 
             self.place_overlay;
@@ -409,13 +407,17 @@ classdef orthofig < cubefig
         end
         
         function ui_update_images(self)
-            self.image.temp.rawXY = self.slice.do(self.C,self.current_slice(3),'z');
-            self.image.temp.rawXZ = self.slice.do(self.C,self.current_slice(2),'y');
-            self.image.temp.rawYZ = self.slice.do(self.C,self.current_slice(1),'x');
-            self.image.temp.XY = self.postprocess.do(self.image.temp.rawXY);
-            self.image.temp.XZ = self.postprocess.do(self.image.temp.rawXZ);
-            self.image.temp.YZ = self.postprocess.do(self.image.temp.rawYZ);   
-            
+%             self.image.temp.rawXY = self.slice.do(self.C,self.current_slice(3),'z');
+%             self.image.temp.rawXZ = self.slice.do(self.C,self.current_slice(2),'y');
+%             self.image.temp.rawYZ = self.slice.do(self.C,self.current_slice(1),'x');
+%             self.image.temp.XY = self.postprocess.do(self.image.temp.rawXY);
+%             self.image.temp.XZ = self.postprocess.do(self.image.temp.rawXZ);
+%             self.image.temp.YZ = self.postprocess.do(self.image.temp.rawYZ);
+
+            [self.image.temp.XY, self.image.temp.rawXY] = self.C.slice(self.current_slice(3),'z');
+            [self.image.temp.XZ, self.image.temp.rawXZ] = self.C.slice(self.current_slice(2),'y');
+            [self.image.temp.YZ, self.image.temp.rawYZ] = self.C.slice(self.current_slice(1),'x');
+
             self.image.XY.set('CData', self.image.temp.XY);
             self.image.XZ.set('CData', self.image.temp.XZ);
             self.image.YZ.set('CData', self.image.temp.YZ);

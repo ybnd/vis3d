@@ -29,6 +29,7 @@ File format & i/o:
         meta = struct();                                            % metadata struct    
     end
     properties(Hidden = true)
+        im
         filesize                                                    % size of file in bytes
         filesize_gb                                                 % size of file in GB
         figures = [];
@@ -157,6 +158,8 @@ File format & i/o:
             
             self.check_path
             
+            self.im = interactive_methods;
+            
             if do_load
                 self.load_data
             end
@@ -204,55 +207,46 @@ File format & i/o:
             live_A_scan(self.cube, loc, self.zpos, 5, 1, do_fwhm, false);
         end
         
-        function plane = zplane(self, k)    % TODO: maybe do this ~ slice/postprocess InteractiveMethodSelectors associated to Cube instance
-            % Returns the xy plane at position z(k)
-            if ischar(k)
-                switch k
-                    case 'start'
-                        k = 1;
-                    case 'middle'
-                        k = round(length(self.zpos)/2);
-                    case 'end'
-                        k = length(self.zpos);
-                end
-            end
-            plane = normalize2(self.cube(:,:,k));
+        function [slice, raw_slice] = slice(self, k, axis)
+            % todo: this will probably break if GUI is not initialized!
+            raw_slice = self.im.selectors.slice.selected.do(self.cube, k, axis);
+            slice = self.im.selectors.postprocess.selected.do(raw_slice);
         end
-        
-        function sf = slice(self, plane, M, method, args, f)
-            % Slice display (scroll to scan through the cube)
-            switch nargin
-                case 1
-                    plane = 'XY';
-                    M = 100;
-                    method = @normalize_slice;
-                    args = struct();
-                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
-                    self.figures = [self.figures, f];
-                case 2
-                    M = 100;
-                    method = @normalize_slice;
-                    args = struct();
-                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
-                    self.figures = [self.figures, f];
-                case 3
-                    method = @normalize_slice;
-                    args = struct();
-                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
-                    self.figures = [self.figures, f];
-            end
-            
-            switch lower(plane)
-                case {'xz', 'zx'}
-                    slice_cube = permute(self.cube, [3,1,2]);
-                case {'yz', 'zy'}
-                    slice_cube = permute(self.cube, [3,2,1]);
-                otherwise
-                    slice_cube = self.cube;
-            end
-  
-            sf = slicefig(slice_cube, f, method, args, M); % todo: should have same contrast stuff as ortho...
-        end
+                
+%         function sf = slice(self, plane, M, method, args, f)
+%             % Slice display (scroll to scan through the cube)
+%             switch nargin
+%                 case 1
+%                     plane = 'XY';
+%                     M = 100;
+%                     method = @normalize_slice;
+%                     args = struct();
+%                     f = figure('Name', sprintf('%s (%s)', self.name, plane));
+%                     self.figures = [self.figures, f];
+%                 case 2
+%                     M = 100;
+%                     method = @normalize_slice;
+%                     args = struct();
+%                     f = figure('Name', sprintf('%s (%s)', self.name, plane));
+%                     self.figures = [self.figures, f];
+%                 case 3
+%                     method = @normalize_slice;
+%                     args = struct();
+%                     f = figure('Name', sprintf('%s (%s)', self.name, plane));
+%                     self.figures = [self.figures, f];
+%             end
+%             
+%             switch lower(plane)
+%                 case {'xz', 'zx'}
+%                     slice_cube = permute(self.cube, [3,1,2]);
+%                 case {'yz', 'zy'}
+%                     slice_cube = permute(self.cube, [3,2,1]);
+%                 otherwise
+%                     slice_cube = self.cube;
+%             end
+%   
+%             sf = slicefig(slice_cube, f, method, args, M); % todo: should have same contrast stuff as ortho...
+%         end
         
         function of = ortho(self, M, z, slice_method)
             %{ 
@@ -290,7 +284,7 @@ File format & i/o:
             f = figure('Name', self.name, 'visible', 'off');
             self.figures = [self.figures, f];
             
-            of = orthofig(self.cube, f, M, z, slice_method);
+            of = orthofig(self, f, M, z, slice_method);
         end
         
         function explore(self)
