@@ -1,6 +1,6 @@
 classdef cube_ROIs < handle      
     properties
-        I = false;
+        C = false;
         fig = false;
         sf = false;
         axis_image = false;
@@ -23,15 +23,17 @@ classdef cube_ROIs < handle
     end
     
     methods        
-        function obj = cube_ROIs(I)
-            obj.I = I;
+        function obj = cube_ROIs(C)
+            obj.C = C;
             obj.M = 100;
             
-            if isa(obj.I, 'thorCube')
-               obj.slice_method = @slice;  % Don't blend Thorlabs OCT slices
+            if isa(obj.C, 'thorCube')
+               C.im_select('postprocess', 'global_normalize');
+            else
+                C.im_select('slice', 'blur_slice');
             end
             
-            obj.z = obj.I.position;
+            obj.z = obj.C.position;
             obj.overlay.axis = false;
         end
         
@@ -43,11 +45,14 @@ classdef cube_ROIs < handle
 %             end
 %         end
         
-        function enough = select_roi(obj, M)   
+        function enough = select_roi(obj, M)  
+            switch nargin                
+                case 1
+                    M = obj.M;
+            end
+            
             if ~ishandle(obj.axis_image)
-%                 obj.sf = slicefig(obj.I.cube, obj.fig, obj.slice_method, obj.slice_args, M); 
-                    % todo: should be in it's own preparation method
-                obj.sf = obj.I.slice('XY', M, obj.slice_method, obj.slice_args, obj.fig);
+                obj.sf = obj.C.sf('XY', M, obj.fig);
                 obj.axis_image = obj.sf.get_XY_axis;
             else
                 obj.axis_image = obj.sf.get_XY_axis;
@@ -67,8 +72,8 @@ classdef cube_ROIs < handle
             r = r+1;
             
             try 
-                rh = obj.sf.imrect;
-                obj.ROIs{r} = ROI(obj.I, rh, r, obj.sf.current_slice, obj.overlay.axis, obj.slice_method, obj.slice_args);
+                rh = obj.sf.draw_rectangle;
+                obj.ROIs{r} = ROI(obj.C, rh, r, obj.sf.current_slice, obj.overlay.axis);
 %                 obj.ROIs{r}.show
                 clear rh
                 enough = false;
@@ -101,7 +106,7 @@ classdef cube_ROIs < handle
                 
             end
             obj.sf = false;
-            obj.I.unload_data()
+            obj.C.unload_data()
         end
         
         function select(obj, M)  % todo: should add an argument to specify slice method
@@ -110,14 +115,14 @@ classdef cube_ROIs < handle
                     M = 100;
             end
             
-            if isempty(obj.I.cube)
-                obj.I.load_data
+            if isempty(obj.C.cube)
+                obj.C.load_data
             end
             
             enough = false;
             
             if ~ishandle(obj.fig)
-                obj.fig = figure('Name', obj.I.name);
+                obj.fig = figure('Name', obj.C.name);
             end
             
             while ishandle(obj.fig) && ~enough
@@ -125,34 +130,31 @@ classdef cube_ROIs < handle
             end
         end
         
-%         function explore(obj)
-%             obj.I.load_data
-%             
-%             if ~ishandle(obj.fig)
-%                 obj.fig = figure('Name', obj.I.MD.Main.File.Name);        
-%             end
-%             
-%             if ~ishandle(obj.axis_image)
-%                 obj.fig = slicestack(obj.fig, obj.I.cube, obj.slice_method, obj.slice_args); 
-%                     % todo: should be in it's own preparation method
-%                 obj.axis_image = obj.sf.get_XY_axis;
-%             else
-%                 axes(obj.axis_image)
-% %                 obj.fig = slicestack(obj.fig, obj.I.cube, obj.slice_method, obj.slice_args);
-%             end
-% 
-%             if ~ishandle(obj.overlay.axis)
-%                 obj.overlay.axis = copyobj(gca, obj.fig);
-%                 cla(obj.overlay.axis);
-%             end
-%             
-%             r = length(obj.ROIs);
-%             
-%             % Overlay previous ROIs... this may not be efficient
-%             obj.show_selections
-%             
-%             axis(obj.axis_image)
-%         end
+        function explore(obj)
+            obj.C.load_data
+            
+            if ~ishandle(obj.fig)
+                obj.fig = figure('Name', obj.C.name);        
+            end
+            
+            if ~ishandle(obj.axis_image)
+                obj.sf = obj.C.sf('XY', obj.M, obj.fig);
+                obj.axis_image = obj.sf.get_XY_axis;
+            else
+                obj.axis_image = obj.sf.get_XY_axis;
+            end
+
+            if ~ishandle(obj.overlay.axis)
+                obj.overlay.axis = copyobj(obj.axis_image, obj.fig);
+                set(obj.overlay.axis, 'Tag', 'Overlay')
+                cla(obj.overlay.axis);
+            end
+
+            % Overlay previous ROIs... this may not be efficient
+            obj.show_selections
+            
+            axis(obj.axis_image)
+        end
     end
 end
 

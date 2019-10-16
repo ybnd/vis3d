@@ -97,9 +97,9 @@ classdef slicefig < cubefig
             end
         end
         
-        function rh = imrect(obj)
+        function rh = draw_rectangle(obj)
             axis(obj.image.Parent);
-            rh = imrect();
+            rh = drawrectangle();
         end
         
         function ax = get_XY_axis(obj)

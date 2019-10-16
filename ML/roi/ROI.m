@@ -3,7 +3,7 @@ classdef ROI < handle
     %   Detailed explanation goes here
     
     properties
-        I
+        C
         
         rect % todo: maybe add option to select ellipse instead of rectangle
         position
@@ -28,25 +28,19 @@ classdef ROI < handle
     end
     
     methods
-        function obj = ROI(I, rect, number, slice, overlay_axis, slice_method, slice_args)
+        function obj = ROI(C, rect, number, slice, overlay_axis)
             switch nargin
                 case 4
                     obj.overlay.axis = overlay_axis;
-                case 5
-                    obj.overlay.axis = overlay_axis;
-                    obj.slice_method = slice_method;
-                case 6
-                    obj.overlay.axis = overlay_axis;
-                    obj.slice_method = slice_method;
-                    obj.slice_args = slice_args;
             end
             
-            obj.I = I;
+            obj.C = C;
+            obj.rect = rect;
 
-            obj.position = floor(rect.getPosition());
+            obj.position = floor(rect.Position);
             obj.cols = obj.position(1):obj.position(1)+obj.position(3);
             obj.rows = obj.position(2):obj.position(2)+obj.position(4);
-            obj.Nz = length(obj.I.position);
+            obj.Nz = length(obj.C.position);
             obj.slice = slice;
             % todo: can we trust this not to break? -> nope, we can't!
             
@@ -56,10 +50,13 @@ classdef ROI < handle
 
             obj.id = get_id(number);
             obj.number = number;
+            
+            obj.rect.delete;
         end
         
         function get_image(obj)
-            obj.image = obj.slice_method(obj.I.cube(obj.rows,obj.cols,:), obj.slice, obj.slice_args);
+            [I, ~] = obj.C.slice(obj.slice,'z');    % Only handles XY slicing
+            obj.image = I(obj.rows,obj.cols);
         end
         
         function get_binary(obj)
@@ -77,7 +74,7 @@ classdef ROI < handle
         function compute_intensity(obj)           
             avgs = zeros(1,obj.Nz);
             for z = 1:obj.Nz
-                temp = obj.I.cube(obj.rows,obj.cols,z);
+                temp = obj.C.cube(obj.rows,obj.cols,z);
                 avgs(z) = mean(temp(obj.binary));
             end
             
@@ -99,7 +96,7 @@ classdef ROI < handle
                 pos = obj.position;
                 
                 if isempty(get(gca, 'Children'))                    
-                    [Nx,Ny,~] = size(obj.I.cube(:,:,1));
+                    [Nx,Ny,~] = size(obj.C.cube(:,:,1));
                     overlay_mask = ones(Nx,Ny);
                     obj.overlay.mask = imshow(overlay_mask, 'Colormap', [0,0,0;0,1,0]);
                     set(obj.overlay.mask, 'AlphaData', zeros(Nx,Ny));

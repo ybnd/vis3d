@@ -5,7 +5,7 @@ classdef p2p_distance < cube_ROIs
                 case 2
                     obj.MinPeakProminence = MinPeakProminence;                
             end
-%             obj.I.load_data % todo make this a method again
+%             obj.C.load_data % todo make this a method again
             
             D = []; R = []; S = []; A = [];
             
@@ -54,14 +54,14 @@ classdef p2p_distance < cube_ROIs
             end
             
             if isempty(Sf)
-                disp('oops there are no single-length observations (or none at all)')
+                disp('There are no single-length observations (or none at all)')
             end
             if ~isempty(Sm)
                 try
                     [~,idx] = intersect(S,Sf);
                     Df = D(idx); Rf = R(idx); Af = A(idx);
                 catch
-                    disp('something is wrong')
+                    disp('Something is wrong')
                 end
 
                 distribution = D(idx);
@@ -80,7 +80,7 @@ classdef p2p_distance < cube_ROIs
         
         function profiles(obj)
             figure;
-            obj.I.load_data
+            obj.C.load_data
             zz = (single(obj.z)-single(obj.z(1)))*1e-3;            
             
             for i = 1:length(obj.ROIs)
@@ -109,7 +109,7 @@ classdef p2p_distance < cube_ROIs
                     obj.MinPeakProminence = MinPeakProminence;
             end
             figure;
-            obj.I.load_data
+            obj.C.load_data
              
             [D,R,S] = obj.distances(obj.MinPeakProminence);
             if ~isempty(D)
