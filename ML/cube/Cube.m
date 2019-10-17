@@ -90,10 +90,10 @@ File format & i/o:
 
             try
                 tempCube.cube = process(obj.cube);
+                tempCube.save_data(path, options);
             catch err
                 warning(err.identifier, '%s', err.message);
-            end
-            tempCube.save_data(path, options);
+            end            
         end
         
         function load_data(obj)  % todo: refactor everything to load / unload!
@@ -125,6 +125,7 @@ File format & i/o:
                         case {'little-endian', 'le', 'ieee-le'}
                             machinefmt = 'ieee-le';
                         case {'big-endian', 'be', 'ieee-be'}
+                            machinefmt = 'ieee-be';
                     end
                     
                     A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
@@ -135,7 +136,7 @@ File format & i/o:
                         case 'cube'
                             obj.cube = A;
                         otherwise
-                            obj.data.A = A;
+                            obj.data.(d.name) = A;
                     end                    
                 elseif length(fields(d)) == 1
                     dfields = fields(d);

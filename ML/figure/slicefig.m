@@ -98,6 +98,9 @@ classdef slicefig < cubefig
         end
         
         function rh = draw_rectangle(obj)
+            % what if: This doesn't need to be a rectangle!
+            %   https://nl.mathworks.com/help/images/ref/drawrectangle.html
+            %   https://nl.mathworks.com/help/images/ref/imroi-class.html
             axis(obj.image.Parent);
             rh = drawrectangle();
         end

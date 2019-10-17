@@ -14,12 +14,8 @@ function C = loadcube(varargin)
             CubeClass = @tifCube;
         case '.oct'
             CubeClass = @thorCube;
-        case {'.ocmbin', '.ocm'}
+        case {'.ocmbin', '.ocm', 'bin'}
             CubeClass = @ocmCube;
-        case {'.bin'}
-            if isempty(getSubExtension(path))
-                CubeClass = @ocmCube;
-            end
     end
 
     C = CubeClass(varargin{:});

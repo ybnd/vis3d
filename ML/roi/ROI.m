@@ -1,6 +1,5 @@
 classdef ROI < handle
-    %SELECTION Summary of this class goes here
-    %   Detailed explanation goes here
+    % Region of Interest
     
     properties
         C
@@ -51,7 +50,7 @@ classdef ROI < handle
             obj.id = get_id(number);
             obj.number = number;
             
-            obj.rect.delete;
+            obj.rect.delete;    % what if: don't delete it, make it modifyable?
         end
         
         function get_image(obj)
