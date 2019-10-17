@@ -1,11 +1,17 @@
 classdef tifCube < Cube 
+% Reader for .tif 3d images
+
+% todo: also handle folders of .tiff files!
+
     properties(Hidden = true)
         files
     end
     
     %% File I/O methods
     methods(Access = public)
-        function load_data(obj)
+        function load(obj)
+            % Load data from .tif stack file
+            
             % Requires 'Multipage TIFF stack' to be in the MATLAB path
             % https://nl.mathworks.com/matlabcentral/fileexchange/35684-multipage-tiff-stack?focused=7519470&tab=function
             
@@ -20,7 +26,7 @@ classdef tifCube < Cube
             end
         end  
         
-        function save_data(obj, path, options)
+        function save(obj, path, options)
             switch nargin
                 case 1
                     path = '';

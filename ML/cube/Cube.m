@@ -29,11 +29,11 @@ File format & i/o:
         meta = struct();                                            % metadata struct    
     end
     properties(Hidden = true)
-        interactive_methods
+        selectors                                                   % Struct of InteractiveMethodSelector instances: see interactive_methods.m
         filesize                                                    % size of file in bytes
         filesize_gb                                                 % size of file in GB
-        figures = [];
-        is_loaded = false
+        figures = [];                                               % handles to open figures
+        is_loaded = false           
         mfmt = 'ieee-le';
         minsize = 640 * 480;                                        % everything smaller than a VGA image -> save in .json to limit number of separate files
     end
@@ -41,6 +41,9 @@ File format & i/o:
     %% Initialization
     methods
         function obj = Cube(path, do_load)
+            % Initializes a Cube instance. 
+            % To create an interface to a 3d image file without opening it, call with do_load=false
+            
             switch nargin
                 case 0
                     path = '';
@@ -54,10 +57,10 @@ File format & i/o:
             
             obj.check_path
             
-            obj.interactive_methods = interactive_methods;
+            obj.selectors = interactive_methods;
             
             if do_load
-                obj.load_data
+                obj.load
             end
         end    
     end
@@ -65,53 +68,32 @@ File format & i/o:
     %% File I/O methods    
     methods(Access = public)        
         function sobj = saveobj(obj)
-            sobj = obj;  
-            sobj.unload_data()                              
-        end
-               
-        function save(obj, fmt, process, path, options)
-            switch nargin
-                case 1
-                    fmt = ''; process = @pass_data; path = ''; options = struct();
-                case 2
-                    process = @pass_data; path = ''; options = struct();
-                case 3
-                    path = ''; options = struct();
-                case 4
-                    options = struct();
-            end
+            % Invoked when saving a Cube instance to a .mat file
+            %   * Cube instances loaded from .mat files can be used after calling obj.load to load their data
+            %   * Keep in mind that old .mat files contain OLD IMPLEMENTATIONS, and will not work 
             
-            switch lower(fmt)
-                case {'tif', 'tiff'}
-                    tempCube = tifCube(obj.path, false);
-                case {'', '.cube', '.json'}
-                    tempCube = Cube(obj.path, false);
-            end
-
-            try
-                tempCube.cube = process(obj.cube);
-                tempCube.save_data(path, options);
-            catch err
-                warning(err.identifier, '%s', err.message);
-            end            
+            sobj = obj;  
+            sobj.unload()                              
         end
         
-        function load_data(obj)  % todo: refactor everything to load / unload!
-            [folder, file, ~] = fileparts(obj.path);            
-            header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));
+        function load(obj)
+            % Load data in json/binary format
             
+            [folder, file, ~] = fileparts(obj.path);    
+            
+            % Read & load the .json header file
+            header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));            
             obj.name = header.name; obj.desc = header.desc; obj.meta = header.meta;
             
+            % Load datasets in header's 'data' field
             for i = 1:length(header.data)
                 try
                     d = header.data{i};
                 catch
                     d = header.data;
                 end
-                if isfield(d,'name') && isfield(d,'data')
-                    obj.data.(d.name) = d.data;
-                elseif isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
-                    fid = fopen([folder '/' d.path], 'rb+');
+                if isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
+                    % Large dataset -> load from binary file
                     
                     try
                         machinefmt = d.mfmt;
@@ -128,6 +110,8 @@ File format & i/o:
                             machinefmt = 'ieee-be';
                     end
                     
+                    % Read from binary file & trasnform to correct shape
+                    fid = fopen([folder '/' d.path], 'rb+');   
                     A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
                     fclose(fid);
                     A = reshape(A, d.size');
@@ -139,6 +123,7 @@ File format & i/o:
                             obj.data.(d.name) = A;
                     end                    
                 elseif length(fields(d)) == 1
+                    % Small dataset -> load from header
                     dfields = fields(d);
                     obj.data.(dfields{1}) = d.(dfields{1});
                 else
@@ -147,7 +132,7 @@ File format & i/o:
             end            
         end        
         
-        function unload_data(obj)   % todo: refactor everything to load / unload!
+        function unload(obj)
             % Flush data from memory, but keep the interface & metadata
             if obj.is_loaded
                 obj.cube = zeros(1,1,1);
@@ -161,13 +146,19 @@ File format & i/o:
     
     methods(Access = protected)
         
-        function save_data(obj, path, options)
+        function save(obj, path, options)
+            % Save obj data in json/binary format
+            
             switch nargin
                 case 1
                     path = '';
                     options = struct();
                 case 2
                     options = struct();
+            end
+            
+            if isempty(path)
+               path = remove_extension(obj.path); 
             end
             
             [do_save, path, ~] = obj.resolve_save(path, options);
@@ -187,7 +178,9 @@ File format & i/o:
                 dataspec = cell(length(obj.data)+1,1);
 
                 % Cube data
-                dataspec{1} = struct('name', 'cube', 'size', size(obj.cube), 'type', class(obj.cube));      
+                dataspec{1} = struct( ...
+                    'name', 'cube', 'size', size(obj.cube), 'type', class(obj.cube), 'mfmt', obj.mfmt ...
+                );      
 
                 % Arbitrary data
                 datasets = fields(obj.data);
@@ -201,10 +194,12 @@ File format & i/o:
                 % Remove empty fields from dataspec
                 dataspec = dataspec(~cellfun('isempty', dataspec));
 
+                
                 for i = 1:length(dataspec)
                     try
                         if prod(dataspec{i}.size) > obj.minsize 
-                            if strcmp(dataspec{i}.name, 'cube') % todo: maybe reverse order of check; never try to save cube in .json
+                            % Large dataset -> save to a binary file
+                            if strcmp(dataspec{i}.name, 'cube')
                                 id = 'cube';
                                 data_i = obj.cube;
                             else
@@ -212,10 +207,6 @@ File format & i/o:
                                 data_i = obj.data.(dataspec{i}.name);
                             end
                             
-                            if ~isfield(dataspec{i}, 'mfmt')
-                               dataspec{i}.mfmt = 'ieee-le'; % Little-endian encoding by default
-                            end
-
                             savepath = sprintf('%s.%s', path, id);
                             [~, savename, saveext] = fileparts(savepath);
                             dataspec{i}.path = [savename, saveext];
@@ -224,6 +215,7 @@ File format & i/o:
                             fwrite(fid, data_i, dataspec{i}.type, dataspec{i}.mfmt);
                             fclose(fid);
                         else
+                            % Small dataset -> save to .json
                             dataspec{i}.(dataspec{i}.name) = obj.data.(dataspec{i}.name);
                             dataspec{i} = rmfield(dataspec{i}, {'size', 'type', 'name'});                              
                         end
@@ -235,27 +227,23 @@ File format & i/o:
                 meta_struct.data = dataspec;
                 meta_struct.meta = obj.meta;  
 
+                % Write .json file
                 fid = fopen(sprintf('%s.json', path), 'w+');
                 fprintf(fid, '%s', prettyjson(jsonencode(meta_struct)));
                 fclose(fid);    
             end
         end
         
-        function [do_save, path, options] = resolve_save(obj, path, options)
+        function [do_save, path] = resolve_save(obj, path)
+            % Save to obj.path if 'path' not specified.            
             do_save = true;
             
             switch nargin
                 case 1
-                    path = '';
-                    options = struct();
-                case 2
-                    options = struct();
-            end
-            
-            if isempty(path)
                     path = remove_extension(obj.path);
             end
             
+            % If 'path' already exists, prompt user whether to overwrite
             if exist(path, 'file') == 2
                 switch lower(input('Overwrite file? (y/n) \n', 's'))
                     case {'y', 't', '1'}
@@ -277,10 +265,11 @@ File format & i/o:
     methods(Access=public)
         function of = of(obj, M, z)
             %{ 
-                Orthographic views of the cube
+                Orthographic views of obj.cube
                     Scan over z: Scroll
                               x: Shift + Scroll
-                              y: Ctrl + Scroll
+                              y: Alt + Scroll
+                    Figsize +/-: Ctrl + Scroll
             %}
             
             switch nargin
@@ -311,7 +300,8 @@ File format & i/o:
         end
         
         function sf = sf(self, plane, M, f)
-            % Slice display (scroll to scan through the cube)
+            % Slice view of obj.cube (scroll to scan through the cube)
+            
             switch nargin
                 case 1
                     plane = 'XY';
@@ -340,8 +330,8 @@ File format & i/o:
         end
         
         function zprof(obj, loc, do_fwhm)
-            % Interactive z-profile window
-            % todo: doesn't work anymore
+            % Interactive z-profile figure
+            % Move the cursor over the leftmost figure to plot profiles at those coordinates (XY) in the other figures
             switch nargin 
                 case 1
                     loc = floor(length(obj.zpos/2));
@@ -354,7 +344,7 @@ File format & i/o:
         end
         
         function explore(obj)
-            % Open the folder containing current file in explorer
+            % Open the folder containing obj.path in explorer
             path_parts = strsplit(obj.path, '/');
             folder = strjoin(path_parts(1:end-1), '/');
             
@@ -368,11 +358,10 @@ File format & i/o:
     
     %% Lower-level interface to Cube data
     methods(Access=public)               
-        function z = position(obj)
-            z = obj.data.zpos;
-        end
-        
         function z = zpos(obj)
+            % Returns the Z-position vector
+            %   * If there is no explicit Z-position vector, returns a vector of indeces in the Z axis
+            
             if isfield(obj.data, 'zpos')
                 z = obj.data.zpos;
             else
@@ -380,28 +369,43 @@ File format & i/o:
                 z = 1:Nz;
             end
         end
+        
+        function z = position(obj)
+            % Alias for obj.zpos
+            z = obj.zpos();
+        end
     end
     
     %% Interface to InteractiveMethods
     methods(Access=public)
         function [slice, raw_slice] = slice(obj, k, axis)
-            raw_slice = obj.interactive_methods.selectors.slice.selected.do(obj.cube, k, axis);
-            slice = obj.interactive_methods.selectors.postprocess.selected.do(raw_slice);
+            % Returns a slice of obj.cube at index k on axis using the selected slicing method
+            %   * Postprocess using the selected postprocess method; also return a 'raw' slice.
+            raw_slice = obj.selectors.slice.selected.do(obj.cube, k, axis);
+            slice = obj.selectors.postprocess.selected.do(raw_slice);
         end
         
         function [slice, postprocess] = get_selectors(obj)
-            slice = obj.interactive_methods.selectors.slice;
-            postprocess = obj.interactive_methods.selectors.postprocess;
+            % Returns handles to 'slice' and 'postprocess' InteractiveMethodSelectors
+            %   * Should be used when adding InteractiveMethodSelector UI elements for a Cube instance to a figure
+            slice = obj.selectors.slice;
+            postprocess = obj.selectors.postprocess;
         end
         
         function im_select(obj, selector, method) 
-            obj.interactive_methods.selectors.(selector).select(method);
+            % For InteractiveMEthodSelector 'selector', select InteractiveMethod 'method' 
+            %   * 'selector' and 'method' must match exactly; see interactive_methods.m for details.
+            obj.selectors.(selector).select(method);
         end
         
         function im_set(obj, varargin)
-            for i = 1:length(fields(obj.interactive_methods.selectors))
-               selector_fields = fields(obj.interactive_methods.selectors);
-               selector = obj.interactive_methods.selectors.(selector_fields{i});
+            % Sets any number of InteractiveMEthod parameters, specified as 'parameter', value
+            %   * Searches for 'parameter' in all InteractiveMethods in all InteractiveMethodSelectors
+            %       -> setting values through GUI is more efficient
+            %   * 'parameter' must match exactly, see innteractive_methods.m for details.
+            for i = 1:length(fields(obj.selectors))
+               selector_fields = fields(obj.selectors);
+               selector = obj.selectors.(selector_fields{i});
                
                for j = 1:(length(varargin)/2)
                    selector.set(varargin{2*(j-1)+1}, varargin{2*(j-1)+2})
@@ -410,10 +414,13 @@ File format & i/o:
         end
         
         function im_reset(obj, varargin)
+            % Resets InteractiveMethod parameters (separated by commas) to their default value
+            %   'selector' and 'method' must match exactly; see interactive_methods.m for details.
+            
             % todo: if varargin is empty: reset everything to default
-            for i = 1:length(fields(obj.interactive_methods.selectors))
-               selector_fields = fields(obj.interactive_methods.selectors);
-               selector = obj.interactive_methods.selectors.(selector_fields{i});
+            for i = 1:length(fields(obj.selectors))
+               selector_fields = fields(obj.selectors);
+               selector = obj.selectors.(selector_fields{i});
                
                for j = 1:length(varargin)
                    selector.reset(varargin{j})
@@ -422,13 +429,16 @@ File format & i/o:
         end
         
         function [value] = im_get(obj, varargin)
+            % Returns current values of parameters (separated by comma) of all InteractiveMethod instances in all 
+            % InteractiveMethodSelector instances in a structure array
+            
             % todo: called without arguments -> should give overview of all IMS & IM + current arguments
             % todo: would be more useable if output was a table instead of a struct
-            for i = 1:length(fields(obj.interactive_methods.selectors))
+            for i = 1:length(fields(obj.selectors))
                value = struct();
                
-               selector_fields = fields(obj.interactive_methods.selectors);
-               selector = obj.interactive_methods.selectors.(selector_fields{i});
+               selector_fields = fields(obj.selectors);
+               selector = obj.selectors.(selector_fields{i});
                
                for j = 1:length(varargin)
                    value.(selector_fields{i}).(fieldsafe(varargin{j})) = selector.get(varargin{j});

@@ -1,7 +1,8 @@
 classdef thorCube < Cube
 % Reader for Thorlabs .oct files (acquired with ThorImage OCT 4.x and 5.x)
-% Depends on Thorlabs SpectralRadar MATLAB API
-    
+%   * Depends on Thorlabs SpectralRadar MATLAB API; make sure it's included in the MATLAB path
+%   * May need to be updated to support newer versions of the .oct format!
+        
     properties(Hidden = true)
         h = struct()                                              % Full field perview image
         dz                                                        % Axial step (nm / px)
@@ -9,7 +10,8 @@ classdef thorCube < Cube
     
     %% File I/O methods
     methods(Access = public)
-        function load_data(obj)          
+        function load(obj) 
+            % Load data in .oct format
             if ~obj.is_loaded
                 if isempty(fields(obj.h))
                     % Get .oct file handle (can take quite a while to load with the whole unzipping business)
@@ -46,16 +48,18 @@ classdef thorCube < Cube
             end
         end
         
-        function unload_data(obj)
+        function unload(obj)
+            % Close interface to .oct file (see Thorlabs OCT API) and unload data
             if obj.is_loaded
                 obj.h = struct();   % Let go of handle to .oct file
-                unload_data@Cube(obj)
+                unload@Cube(obj)
             end
         end
     end
     %% High-level interface to thorCube data
     methods(Access = public)
         function preview(obj)
+            % Show the preview image (wide FOV + scan region)
             figure('Name', sprintf('%s - preview image', obj.name));
             imshow_tight(obj.data.preview_image);
         end

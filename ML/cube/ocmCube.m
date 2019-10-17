@@ -1,13 +1,5 @@
 classdef ocmCube < Cube   
-%  Reader for .bin OCM files
-%{  
-            Cube:         3d image
-            Position:     scan position vector
-            Data:         generic additional data
-                              e.g.:   fps at scan point; average or time series
-                                      extra images
-                                      PSI & DAQ settings
-%}
+%  Reader for ocmbin 3d image files (deprecated format, use to open files from 2017-2019)
     properties(Hidden = true)
         cube_reduced
         header
@@ -23,7 +15,9 @@ classdef ocmCube < Cube
     %% File I/O methods
     
     methods(Access = public)            
-        function load_data(obj)
+        function load(obj)
+            % Overrides Cube.load
+            % Load data in ocmbin format
             if ~obj.is_loaded
                 full_read = tic;            
                 obj.parseMetadata();           
@@ -50,6 +44,7 @@ classdef ocmCube < Cube
     
     methods(Access = private)
         function parseMetadata(obj)      
+            % Read & parse metadata string from .bin file
             
             f = fopen(obj.path, 'rb');
             fseek(f, 0, 'bof');
@@ -126,6 +121,7 @@ classdef ocmCube < Cube
         end  
         
         function rename_MD_fields(obj)
+            % Rename metadata fields to be more human-friendly
            oldfields = fieldnames(obj.meta);
             targets = {'DataProperties', 'TimingProperties', 'MainProperties', 'CameraAttributes', 'ScanProperties'};
             replace = {'Data', 'Time', 'Main', 'CMOS', 'Scan'};
