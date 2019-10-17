@@ -106,7 +106,7 @@ classdef cube_ROIs < handle
                 
             end
             obj.sf = false;
-            obj.C.unload_data()
+            obj.C.unload()
         end
         
         function select(obj, M)  % todo: should add an argument to specify slice method
@@ -116,7 +116,7 @@ classdef cube_ROIs < handle
             end
             
             if isempty(obj.C.cube)
-                obj.C.load_data
+                obj.C.load();
             end
             
             enough = false;
@@ -131,7 +131,7 @@ classdef cube_ROIs < handle
         end
         
         function explore(obj)
-            obj.C.load_data
+            obj.C.load();
             
             if ~ishandle(obj.fig)
                 obj.fig = figure('Name', obj.C.name);        

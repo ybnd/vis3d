@@ -5,7 +5,8 @@ classdef p2p_distance < cube_ROIs
                 case 2
                     obj.MinPeakProminence = MinPeakProminence;                
             end
-%             obj.C.load_data % todo make this a method again
+            
+            obj.C.load();
             
             D = []; R = []; S = []; A = [];
             
@@ -80,7 +81,7 @@ classdef p2p_distance < cube_ROIs
         
         function profiles(obj)
             figure;
-            obj.C.load_data
+            obj.C.load();
             zz = (single(obj.z)-single(obj.z(1)))*1e-3;            
             
             for i = 1:length(obj.ROIs)
@@ -109,7 +110,7 @@ classdef p2p_distance < cube_ROIs
                     obj.MinPeakProminence = MinPeakProminence;
             end
             figure;
-            obj.C.load_data
+            obj.C.load();
              
             [D,R,S] = obj.distances(obj.MinPeakProminence);
             if ~isempty(D)
