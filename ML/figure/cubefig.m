@@ -1,12 +1,13 @@
 classdef cubefig < handle
 	properties
         C
-        size = [0,0,0];
+
        
         f = false;
     end
     
-    properties (Access = public)
+    properties (Access = protected)
+        ofsize = [0,0,0];
         image = struct();
         control = struct();
         imagecontrol = struct()

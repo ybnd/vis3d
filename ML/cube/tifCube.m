@@ -1,10 +1,10 @@
 classdef tifCube < Cube 
 % Reader for .tif 3d images
-
-% todo: also handle folders of .tiff files!
+% Files with metadata saved as .tif will lose their metadata!
 
     properties(Hidden = true)
         files
+        options
     end
     
     %% File I/O methods
@@ -26,23 +26,29 @@ classdef tifCube < Cube
             end
         end  
         
-        function save(obj, path, options)
+        function set_options(obj, options)
+            switch nargin
+                case 1
+                    options = struct('overwrite', true);
+            end
+            
+            obj.options = options;
+        end
+        
+        function save(obj, path)
             switch nargin
                 case 1
                     path = '';
-                    options = struct();
-                case 2
-                    options = struct();
             end
             
             if isempty(path)
                path = [remove_extension(obj.path) '.tif']; 
             end
             
-            [do_save, path, options] = obj.resolve_save(path, options);
+            [do_save, path] = obj.resolve_save(path);
             
             if do_save
-                saveastiff(obj.cube, path, options);
+                saveastiff(obj.cube, path, obj.options); 
             end
         end
     end

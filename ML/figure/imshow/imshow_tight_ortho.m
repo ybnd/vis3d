@@ -37,25 +37,28 @@ function [handle_XY, handle_XZ, handle_YZ, overlay, pad] = imshow_tight_ortho(..
     overlay_alpha = 0.2;
     
     ax_XY = subplot(2,2,1);
+    set(ax_XY, 'units', 'pixels')
     handle_XY = imshow(XY, 'InitialMagnification', M);
     handle_XY_X = patchline([0,0],[0,0], 'EdgeColor', overlay_color, 'EdgeAlpha', overlay_alpha);
     handle_XY_Y = patchline([0,0],[0,0], 'EdgeColor', overlay_color, 'EdgeAlpha', overlay_alpha);
     hold on
-    set(ax_XY, 'units', 'pixels')
+    
     ax_XZ = subplot(2,2,2);
+    set(ax_XZ, 'units', 'pixels')
     handle_XZ = imshow(XZ, 'InitialMagnification', M);
     handle_XZ_X = patchline([0,0],[0,0], 'EdgeColor', overlay_color, 'EdgeAlpha', overlay_alpha);
     handle_XZ_Z = patchline([0,0],[0,0], 'EdgeColor', overlay_color, 'EdgeAlpha', overlay_alpha);
     hold on
     daspect([1,z_ratio,1])
-    set(ax_XZ, 'units', 'pixels')
+    
     ax_YZ = subplot(2,2,3);
+    set(ax_YZ, 'units', 'pixels')
     handle_YZ = imshow(YZ, 'InitialMagnification', M);
     handle_YZ_Y = patchline([0,0],[0,0], 'EdgeColor', overlay_color, 'EdgeAlpha', overlay_alpha);
     handle_YZ_Z = patchline([0,0],[0,0], 'EdgeColor', overlay_color, 'EdgeAlpha', overlay_alpha);
     hold on
     daspect([z_ratio,1,1])
-    set(ax_YZ, 'units', 'pixels')
+    
     
     set(gcf, 'Position', [30,30, X+Z, Y+Z] + dfpos);
     set(ax_XY, 'Position', [0,Z+2,X,Y] + dhpos);

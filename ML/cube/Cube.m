@@ -142,26 +142,20 @@ File format & i/o:
                 obj.is_loaded = false;
             end
         end
-    end
-    
-    methods(Access = protected)
         
-        function save(obj, path, options)
+        function save(obj, path)
             % Save obj data in json/binary format
             
             switch nargin
                 case 1
                     path = '';
-                    options = struct();
-                case 2
-                    options = struct();
             end
             
             if isempty(path)
                path = remove_extension(obj.path); 
             end
             
-            [do_save, path, ~] = obj.resolve_save(path, options);
+            [do_save, path] = obj.resolve_save(path);
 
             if do_save
                 path = remove_extension(path);
@@ -197,8 +191,8 @@ File format & i/o:
                 
                 for i = 1:length(dataspec)
                     try
-                        if prod(dataspec{i}.size) > obj.minsize 
-                            % Large dataset -> save to a binary file
+                        if prod(dataspec{i}.size) > obj.minsize || strcmp(dataspec{i}.name, 'cube')
+                            % Large dataset -> save to a binary file (always save obj.cube to binary)
                             if strcmp(dataspec{i}.name, 'cube')
                                 id = 'cube';
                                 data_i = obj.cube;
@@ -217,7 +211,7 @@ File format & i/o:
                         else
                             % Small dataset -> save to .json
                             dataspec{i}.(dataspec{i}.name) = obj.data.(dataspec{i}.name);
-                            dataspec{i} = rmfield(dataspec{i}, {'size', 'type', 'name'});                              
+                            dataspec{i} = rmfield(dataspec{i}, {'size', 'type', 'name', 'mfmt'});                              
                         end
                     catch err
                         warning('Could not process dataspec %d \n %s', i, err.message);
@@ -233,7 +227,9 @@ File format & i/o:
                 fclose(fid);    
             end
         end
-        
+    end
+    
+    methods(Access = protected)        
         function [do_save, path] = resolve_save(obj, path)
             % Save to obj.path if 'path' not specified.            
             do_save = true;
@@ -244,10 +240,13 @@ File format & i/o:
             end
             
             % If 'path' already exists, prompt user whether to overwrite
-            if exist(path, 'file') == 2
-                switch lower(input('Overwrite file? (y/n) \n', 's'))
+            if exist(path, 'file') == 2 || exist([path, '.json'], 'file') == 2
+                switch lower(input(sprintf('Overwrite file %s? (y/n) \n', strrep(path, '\', '\\')), 's'))
                     case {'y', 't', '1'}
                         do_save = true;
+                        if exist(path, 'file') == 2
+                            delete(path); % <path>.json, <path>.cube, ... will be overwritten in Cube.save
+                        end
                     case {'n', 'f', '0'}      
                         do_save = false;
                 end
@@ -262,7 +261,7 @@ File format & i/o:
     end
     
     %% High-level interface to Cube data
-    methods(Access=public)
+    methods(Access=public)                
         function of = of(obj, M, z)
             %{ 
                 Orthographic views of obj.cube
@@ -271,6 +270,9 @@ File format & i/o:
                               y: Alt + Scroll
                     Figsize +/-: Ctrl + Scroll
             %}
+            
+            % Reload interactive methods
+            obj.im_update();
             
             switch nargin
                 case 1
@@ -299,34 +301,52 @@ File format & i/o:
             of = orthofig(obj, f, M, z);
         end
         
-        function sf = sf(self, plane, M, f)
+        function sf = sf(obj, plane, M, f)
             % Slice view of obj.cube (scroll to scan through the cube)
+            
+            % Reload interactive methods
+            obj.im_update();
             
             switch nargin
                 case 1
                     plane = 'XY';
-                    M = 100;
-                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
-                    self.figures = [self.figures, f];
+                    M = NaN;
+                    f = figure('Name', sprintf('%s (%s)', obj.name, upper(plane)));
+                    obj.figures = [obj.figures, f];
                 case 2
-                    M = 100;
-                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
-                    self.figures = [self.figures, f];
+                    M = NaN;
+                    f = figure('Name', sprintf('%s (%s)', obj.name, upper(plane)));
+                    obj.figures = [obj.figures, f];
                 case 3
-                    f = figure('Name', sprintf('%s (%s)', self.name, plane));
-                    self.figures = [self.figures, f];
-            end
+                    f = figure('Name', sprintf('%s (%s)', obj.name, upper(plane)));
+                    obj.figures = [obj.figures, f];
+            end         
             
             switch lower(plane)
                 case {'xz', 'zx'}
                     slice_axis = 'y';
                 case {'yz', 'zy'}
                     slice_axis = 'x';
+                case 'x'
+                    slice_axis = 'x';
+                case 'y' 
+                    slice_axis = 'y';
                 otherwise
                     slice_axis = 'z';
             end
+            
+            if isnan(M)
+                switch slice_axis
+                    case {'z','y'}
+                        [~, vertical, ~] = size(obj.cube);
+                    case 'x'
+                        [~, ~, vertical] = size(obj.cube);
+                end
+                r = monitor_resolution();
+                M = r(2) / vertical * (3/5); % Default: XY image -> 2/3 of max monitor height // doesn't work well with Thorlabs OCT cubes (muuch more z pixels, need to count other projections also)
+            end
   
-            sf = slicefig(self, f, M, slice_axis); % todo: should have same contrast stuff as ortho...
+            sf = slicefig(obj, f, M, slice_axis); % todo: should have same contrast stuff as ortho...
         end
         
         function zprof(obj, loc, do_fwhm)
@@ -390,6 +410,11 @@ File format & i/o:
             %   * Should be used when adding InteractiveMethodSelector UI elements for a Cube instance to a figure
             slice = obj.selectors.slice;
             postprocess = obj.selectors.postprocess;
+        end
+        
+        function im_update(obj)
+            % Update interactive method selector struct
+            obj.selectors = interactive_methods; 
         end
         
         function im_select(obj, selector, method) 

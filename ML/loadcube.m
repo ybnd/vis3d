@@ -16,11 +16,6 @@ function C = loadcube(path, do_load)
 
     % Select Cube implementation based on file extension
     switch getExtension(path)
-        case ''
-            if isfolder(path)
-                % todo: check if there actually are .tiff files in that folder
-                CubeClass = @tifCube;
-            end
         case '.tif'
             CubeClass = @tifCube;
         case '.oct'

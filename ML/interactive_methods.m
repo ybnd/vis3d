@@ -22,9 +22,9 @@ function [im] = interactive_methods()
         'none', ...
             InteractiveMethod(@none, {}, {}), ...
         'dBs_global', ...
-            InteractiveMethod(@dBs_global, {'floor', 'ceiling', 'global range'}, {10, 60, [0 2^32]}), ...
+            InteractiveMethod(@dBs_global, {'floor', 'ceiling', 'global range'}, {0, 60, [0 2^32]}), ...
         'dBs_local', ...
-            InteractiveMethod(@dBs_local, {'floor', 'ceiling'}, {10, 60}), ...
+            InteractiveMethod(@dBs_local, {'floor', 'ceiling'}, {0, 60}), ...
         'normalize_global', ...
             InteractiveMethod(@normalize_global, {'global range'}, {[0 2^32]}), ...
         'normalize_local', ...
@@ -37,20 +37,21 @@ function [im] = interactive_methods()
     );
 
     %% Slice methods -> return an XY image I at position s from a cube C
+    % Function signature: [I] = <function>(C,k,axis ...) with C <- Cube.cube, k <- slice index, axis <- slice axis
 
-    function [I] = slice(C, s, axis)
+    function [I] = slice(C, k, axis)
         assert(isa('axis','char'));
         switch lower(axis)
             case 'x'
-                I = permute(C(s,:,:), [3,2,1]);
+                I = permute(C(k,:,:), [3,2,1]);
             case 'y'
-                I = permute(C(:,s,:), [1,3,2]);
+                I = permute(C(:,k,:), [1,3,2]);
             otherwise
-                I = C(:,:,s);
+                I = C(:,:,k);
         end
     end
 
-    function I = blur_slice(C,s,axis,XY_sigma,Z_sigma)
+    function I = blur_slice(C,k,axis,XY_sigma,Z_sigma)
         % based on sigma & location, extract a subset of cube (enough slices around the actual slice + handle edge cases)
         % blur with imgaussfilt3
         % get slice from the correct position (keep in mind the edge cases!)
@@ -73,7 +74,7 @@ function [im] = interactive_methods()
         end
 
         dz = ceil(Z_sigma/2);
-        extent = max(s-dz,1):min(s+dz,limit);
+        extent = max(k-dz,1):min(k+dz,limit);
 
         C = slice(C,extent,axis);
         C = imgaussfilt3(C, sigma);
@@ -82,6 +83,7 @@ function [im] = interactive_methods()
     end
 
     %% Postprocess methods -> modify an XY / XYZ image I
+    % Function signature: [I] = <function>(I, ...) with I <- output of an InteractiveMEthod from im.slice
 
     function [I] = none(I)
     end

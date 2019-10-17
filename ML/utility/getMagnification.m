@@ -1,4 +1,4 @@
-function [M] = get_magnification(shape, max_ratio)
+function [M] = getMagnification(shape, max_ratio)
     switch nargin
         case 1
             max_ratio = 2/3;

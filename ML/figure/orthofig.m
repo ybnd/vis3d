@@ -5,7 +5,8 @@ classdef orthofig < cubefig
         previous_slice = [1,1,1];   
     end
     
-    properties (Access = private)      
+    properties (Access = private) 
+        size;
         range;
         
         z_ratio = 2;
@@ -35,7 +36,7 @@ classdef orthofig < cubefig
                     M = 0.3;
                     z_ratio = 2;
                 case 2
-                    M = [560 420];
+                    M = [560 420];  % huh? wth is this?
                     z_ratio = 2;
                 case 3
                     z_ratio = 2;

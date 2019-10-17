@@ -8,6 +8,11 @@ function savecube(C, path)
     if ~isa(C, 'Cube')
         error('First argument must be an instance of Cube or a Cube subclass');
     end 
+    
+    if nargin == 1
+       path = C.path;
+    end
+    
     % Normalize 'path'
     if ~java.io.File(path).isAbsolute()
         if ~isempty(C.path)
