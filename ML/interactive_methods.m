@@ -9,6 +9,8 @@ function [im] = interactive_methods()
     %       - In order to avoid errors due to name/parameter changes, don't use these methods explicitly, i.e. calling im.<...>.do(...)
     %           * Instead, InteractiveMethods should be called only through handles provided by InteractiveMethodSelector instances
 
+    % !!! PLEASE MAKE SURE ALL PARAMETERS YOU MAY WANT TO ADDRESS INDIVIDUALLY HAVE UNIQUE NAMES !!!
+    
     % Slice methods
     im_slice = struct( ...
         'slice', ...

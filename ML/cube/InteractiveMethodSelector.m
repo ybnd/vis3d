@@ -11,6 +11,7 @@ classdef InteractiveMethodSelector < dynamicprops
     
     properties(Hidden=true)  
         im_gui = interactive_methods_gui();
+        parname = {};
         figure;
         callback = false;
         gui_handle = false;
@@ -22,6 +23,13 @@ classdef InteractiveMethodSelector < dynamicprops
         function obj = InteractiveMethodSelector(name, items)
             obj.name = name;
             obj.items = items;
+            
+            parname = [];
+            item_fields = fields(items);
+            for i = 1:length(item_fields)
+                parname = [parname items.(item_fields{i}).parname];
+            end
+            obj.parname = unique(parname);
             
             item_fields = fields(items);
             obj.select(item_fields{1});            
@@ -55,14 +63,17 @@ classdef InteractiveMethodSelector < dynamicprops
             end
         end
         
-        function value = get(obj, parameter)
+        function values = get(obj, parameter)
             % Set parameter to value for all InteractiveMethods in obj.items
-            value = struct();
+            values = struct();
             
             options = fields(obj.items);
             for i = 1:length(options)
                 item = obj.items.(options{i});
-                value.(options{i}) = item.get(parameter);
+                value = item.get(parameter);
+                if ~isempty(value)
+                    values.(options{i}) = value;
+                end
             end
         end
         

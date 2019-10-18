@@ -465,22 +465,34 @@ File format & i/o:
             end
         end
         
-        function [value] = im_get(obj, varargin)
+        function [values] = im_get(obj, varargin)
             % Returns current values of parameters (separated by comma) of all InteractiveMethod instances in all 
             % InteractiveMethodSelector instances in a structure array
             
-            % todo: called without arguments -> should give overview of all IMS & IM + current arguments
-            % todo: would be more useable if output was a table instead of a struct
+            % For a 'readable' overview: prettyjson(jsonencode(Cube.im_get()))
+            
+            if ~isempty(varargin)
+                parameters = varargin;
+            else
+                parameters = unique([obj.selectors.slice.parname obj.selectors.postprocess.parname]);
+            end
+            
+            values = struct();
             for i = 1:length(fields(obj.selectors))
-               value = struct();
+               
                
                selector_fields = fields(obj.selectors);
                selector = obj.selectors.(selector_fields{i});
                
-               for j = 1:length(varargin)
-                   value.(selector_fields{i}).(fieldsafe(varargin{j})) = selector.get(varargin{j});
+               for j = 1:length(parameters)
+                   value = selector.get(parameters{j});
+                   if ~isempty(fields(value))
+                       values.(fieldsafe(parameters{j})) = value;
+                   end
                end
             end
+            
+            
         end
     end
 end
