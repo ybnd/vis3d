@@ -146,7 +146,6 @@ classdef orthofig < cubefig
                 'Position', [positions.ui_db(1), obj.border, positions.ui_db(3), positions.ui_db(4)], ...
                 'Value', obj.show_histograms, 'callback', @obj.ui_toggle_histograms);
             
-               
 
             obj.ui_update_images;
             obj.place_overlay;

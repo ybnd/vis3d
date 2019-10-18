@@ -411,13 +411,28 @@ File format & i/o:
         
         function im_update(obj)
             % Update interactive method selector struct
-            obj.selectors = interactive_methods; 
+            slice_method = obj.selectors.slice.selected.method;
+            postprocess_method = obj.selectors.postprocess.selected.method;
+            
+            obj.selectors = interactive_methods;
+            
+            obj.selectors.slice.select(slice_method);
+            obj.selectors.postprocess.select(postprocess_method);
         end
         
-        function im_select(obj, selector, method) 
+        function im_select(obj, varargin) 
             % For InteractiveMEthodSelector 'selector', select InteractiveMethod 'method' 
             %   * 'selector' and 'method' must match exactly; see interactive_methods.m for details.
-            obj.selectors.(selector).select(method);
+            for i = 1:length(fields(obj.selectors))
+               selector_fields = fields(obj.selectors);
+               selector = obj.selectors.(selector_fields{i});
+               
+               for j = 1:(length(varargin))
+                   if any(strcmp(varargin{j},fields(selector.items)))
+                       selector.select(varargin{j});
+                   end
+               end
+            end
         end
         
         function im_set(obj, varargin)

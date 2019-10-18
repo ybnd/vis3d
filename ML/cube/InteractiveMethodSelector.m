@@ -95,9 +95,7 @@ classdef InteractiveMethodSelector < dynamicprops
             obj.callback = callback;
             obj.controls_anchor = anchor + [gui.selector_width + gui.gap, 0];
             
-            % Show controls for first InteractiveMethod by default
-            temp_items = fields(obj.items);
-            obj.select(temp_items{1});
+            obj.replace_controls(obj.selected);
         end
         
         function out = do(obj, in, varargin)
@@ -129,7 +127,7 @@ classdef InteractiveMethodSelector < dynamicprops
             
             if isempty(obj.controls)
                 p = get(obj.gui_handle, 'Position');
-                set(obj.gui_handle, 'Position', [p(1), p(2), gui.selector_width+gui.gap+gui.controls_max_width, p(4)]);
+                set(obj.gui_handle, 'Position', [p(1), p(2), gui.selector_width+gui.gap*2+gui.controls_max_width, p(4)]);
             else
                 p = get(obj.gui_handle, 'Position');
                 set(obj.gui_handle, 'Position', [p(1), p(2), gui.selector_width, p(4)]);

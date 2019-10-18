@@ -220,8 +220,11 @@ classdef InteractiveMethod < dynamicprops
                         % TODO: string parameter min/max should just be ''
                         
                         
-                   case {'simple', 'scopedfunction', 'nested'}
-                        obj.method = fs.function;
+                   case {'scopedfunction', 'nested'}
+                        parts = strsplit(fs.function, '/');
+                        obj.method = parts{2};
+                   case 'simple'
+                       obj.method = fs.function;
                    otherwise
                        error('What even is a %s function: %s', fs.type, fs.function)
                 end
