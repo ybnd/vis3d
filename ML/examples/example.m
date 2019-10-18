@@ -2,7 +2,7 @@
 % Execute section per section with Ctrl+Shift+Enter
 
 clear all; close all; clc;
-folder = [pwd '\ML\examples']; % Current folder should be vis3d
+folder = [pwd '\vis3d\ML\examples']; % Current folder should include vis3d
 
 %% Loading 3d image files: json/binary
 

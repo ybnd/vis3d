@@ -13,11 +13,8 @@ classdef orthofig < cubefig
         pad = [75 0 0 0]
         
         roaming = false;
-       
-        slice = false;          % Placeholder for slice InteractiveMethodSelector
-        postprocess = false;    % Placeholder for postprocess InteractiveMethodSelector
         
-        border = 5;     % border distance (v,h)
+        
         w_img = 160;     % image controls width
         d_img_xyz = 20; % distance between image controls and axis controls
         w_lab = 40;     % axis control label width
@@ -74,11 +71,9 @@ classdef orthofig < cubefig
             ap = get(aXY, 'Position');
             w_xy = ap(3);   % width of XY image
             
-            gui = interactive_methods_gui;
+            gui = obj.im_gui;
             
             obj.w_img = gui.selector_width + gui.controls_max_width + 3*gui.gap;
-
-            [obj.slice,obj.postprocess] = obj.C.get_selectors();
             
             obj.slice.build_gui(obj.f, [obj.border, 47], @obj.ui_update_images, {'position', 'axis'});
             obj.postprocess.build_gui(obj.f, [obj.border, 47-gui.height-gui.gap], @obj.ui_update_images, {'global range'});

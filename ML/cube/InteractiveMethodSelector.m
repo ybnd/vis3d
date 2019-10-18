@@ -10,6 +10,7 @@ classdef InteractiveMethodSelector < dynamicprops
     end
     
     properties(Hidden=true)  
+        im_gui = interactive_methods_gui();
         figure;
         callback = false;
         gui_handle = false;
@@ -80,12 +81,12 @@ classdef InteractiveMethodSelector < dynamicprops
             end
             
             obj.disabled_parameters = disabled_parameters;
-            gui = interactive_methods_gui;
+            gui = obj.im_gui;
             
             gui_handle = uicontrol( ...
                 'Parent', figure, 'Style', 'popupmenu', 'TooltipString', obj.name, ...
                 'String', fields(obj.items), 'FontSize', gui.selector_fontsize, ...
-                'Position', [anchor(1), anchor(2), gui.selector_width, gui.height] ...
+                'Position', [anchor(1), anchor(2), gui.selector_width+gui.gap+gui.controls_max_width, gui.height] ...
             );
             addlistener(gui_handle, 'Value', 'PostSet', @obj.gui_select_callback);
             obj.gui_handle = gui_handle;
@@ -123,6 +124,16 @@ classdef InteractiveMethodSelector < dynamicprops
             end
             obj.controls = selected.build_gui(obj.figure, obj.controls_anchor, obj.callback, obj.disabled_parameters);
             set(obj.gui_handle, 'UserData', selected);
+            
+            gui = interactive_methods_gui;
+            
+            if isempty(obj.controls)
+                p = get(obj.gui_handle, 'Position');
+                set(obj.gui_handle, 'Position', [p(1), p(2), gui.selector_width+gui.gap+gui.controls_max_width, p(4)]);
+            else
+                p = get(obj.gui_handle, 'Position');
+                set(obj.gui_handle, 'Position', [p(1), p(2), gui.selector_width, p(4)]);
+            end
         end
         
         function gui_select_callback(obj, ~, event)

@@ -59,9 +59,20 @@ classdef slicefig < cubefig
 %                 'Position', [5,3,45,20], ...
 %                 'String', sprintf('%s(%d)', obj.slice_axis, obj.current_slice));
 
+
+                
+                gui = obj.im_gui;
+                
+                obj.slice.build_gui(obj.f, [obj.border, obj.border], @obj.ui_update_image, {'position', 'axis'});
+                obj.postprocess.build_gui(obj.f, ...
+                    [obj.border + gui.gap*3 + gui.selector_width + gui.controls_max_width, obj.border], ...
+                    @obj.ui_update_image, {'global range'} ...
+                );
+            
                 obj.control.ui_slider = uicontrol( ...
                     'Parent', obj.f, 'style', 'slider', ...
-                    'Position', [5,5,ap(3)-9,20] ,...
+                    'Position', [obj.border + 2*(gui.gap*3 + gui.selector_width + gui.controls_max_width), ...
+                        obj.border, ap(3)-9-2*(gui.gap*3 + gui.selector_width + gui.controls_max_width),19], ...
                     'Value', obj.current_slice, 'min', 1, 'max', N, ...
                     'SliderStep', [1/N, 1/N], ...
                     'TooltipString', sprintf('%s(%d)', obj.slice_axis, obj.current_slice) ...
@@ -85,8 +96,7 @@ classdef slicefig < cubefig
 %             obj.control.ui_text.String = sprintf('%s(%d)', obj.slice_axis, obj.current_slice);
             set(obj.control.ui_slider, 'TooltipString', sprintf('%s(%d)', obj.slice_axis, obj.current_slice))
             
-            [I,~] = obj.C.slice(obj.current_slice, obj.slice_axis);
-            obj.image.set('CData', I);
+            obj.ui_update_image();
         end
         
         function scroll_callback(obj, ~, eventdata)
@@ -98,6 +108,11 @@ classdef slicefig < cubefig
             catch
                 return
             end
+        end
+        
+        function ui_update_image(obj)
+            [I,~] = obj.C.slice(obj.current_slice, obj.slice_axis);
+            obj.image.set('CData', I);
         end
         
         function rh = draw_rectangle(obj)

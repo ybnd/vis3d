@@ -12,15 +12,16 @@ classdef cubefig < handle
         control = struct();
         imagecontrol = struct()
         
+        im_gui = interactive_methods_gui();
+        slice
+        postprocess
+        
         M = 0.3;
-    end
-    
-    properties (Access = private)
         
-    end
-    
-    methods (Abstract = true)
+        border = 5;     % border distance (v,h)
         
+        min_width = 320;
+        min_height = 240;
     end
     
     methods (Access = public)
@@ -34,6 +35,8 @@ classdef cubefig < handle
         end
         
         function build(obj)
+            [obj.slice, obj.postprocess] = obj.C.get_selectors();
+            
             if ~ishandle(obj.f)
                obj.f = figure; 
             end
@@ -44,8 +47,10 @@ classdef cubefig < handle
             set(obj.f, 'Resize', 'off');
         end
         
-        function update(obj)
-            
+        function ensure_min_size(obj)
+            p = get(obj.f, 'Position');
+            set(obj.f, 'Position', [p(1) p(2) max(p(3), obj.min_width), max(p(4), obj.min_height)]);
+                % ! will mess up unreasonably small images though. Shouldn't come up too often, I hope.
         end
         
         function close(obj)
