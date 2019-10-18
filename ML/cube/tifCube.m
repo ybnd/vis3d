@@ -48,6 +48,9 @@ classdef tifCube < Cube
             [do_save, path] = obj.resolve_save(path);
             
             if do_save
+                if exist(path, 'file')  % Already confirmed overwrite, delete to avoid saveastiff() error.
+                    delete(path)
+                end
                 saveastiff(obj.cube, path, obj.options); 
             end
         end
