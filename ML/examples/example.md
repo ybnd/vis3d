@@ -47,7 +47,11 @@ A.sf; A.sf('yz');
 A.of; 
 ```
 
-These figures contain menu boxes where you can select a *slice method* and a *postprocess method*. These methods determine how portions of the 3d image are extracted from the array `A.cube`. 
+You can navigate the cube by scrolling. To scroll the XZ and YZ views in `Cube.of`, scroll while pressing down Shift and Alt. 
+
+#### InteractiveMethods
+
+These figures contain menu boxes where you can select a *slice method* and a *postprocess method*. These methods determine how portions of the 3d image are extracted from the array `A.cube`.  They're called *InteractiveMethods* since you can swap and modify their parameters on the fly.
 
 The most basic *slice method*, `slice`, just slices a part of the cube an index of one of the axes of the cube. Other slice methods such as `blur_slice` modify the raw data by blurring it and combining information from multiple slices to generate an image.
 
@@ -55,11 +59,29 @@ These slice images are then further modified by a *postprocess method*. In this 
 
 New *slice* and *postprocess methods* can be defined by adding them in [`interactive_methods.m`](../interactive_methods.m); there you can also define additional parameters, which will then be accessible in `Cube.sf` and `Cube.of`
 
+##### Interacting with InteractiveMethods over the command line
+
+*InteractiveMethods* can also be addressed over the command line, which can be useful when calling `of` or `sf` from a script when you already know which settings you want.
+
+For instance, to select `blur_slice` and `dBs_local`, execute
+
+```matlab
+A.im_select('blur_slice', 'dBs_local')
+```
+
+Furthermore, you can get and set the parameters with `Cube.im_set` and `Cube.im_get`. For example, the following command sets `XY sigma` to ten times `Z sigma`
+
+```matlab
+A.im_set('XY sigma', 10 * A.im_get('Z sigma'))
+```
+
+If you open a new figure now, you'll see these changes in effect.
+
+Notice that all parameter and method names are listed in  `interactive_methods.m` and must match exactly for this to work! If you add new *InteractiveMethods*, make sure that parameters you may want to address like this have unique names. Otherwise, results will probably be unexpected.
+
 ### Modifying 3d images
 
 The actual 3d image is directly accessible in `A.cube`, and can be modified in any way a regular MATLAB matrix can be modified. 
-
-###
 
 ### Saving 3d image files
 

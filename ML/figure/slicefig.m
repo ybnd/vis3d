@@ -111,7 +111,7 @@ classdef slicefig < cubefig
         end
         
         function ui_update_image(obj)
-            [I,~] = obj.C.slice(obj.current_slice, obj.slice_axis);
+            [I,~] = obj.C.slice(obj.current_slice, obj.slice_axis, obj.slice, obj.postprocess);
             obj.image.set('CData', I);
         end
         

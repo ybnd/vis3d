@@ -18,18 +18,21 @@ else
     disp('A.cube and T.cube are not equal. Someone has been messing with these files!')
 end
 
-%% Looking at 3d images I
+%% Looking at 3d images
 
 % Slice figures
-A.sf('xy'); A.sf('yz'); 
+A.sf('xy'); 
 
+%% Working with InteractiveMethods
 
-%% Looking at 3d images II
+% Selecting methods
+A.im_select('blur_slice', 'dBs_global')
+% Working with parameters
+A.im_set('XY sigma', 10 * A.im_get('Z sigma'))
 
-% Ortographic figure
-A.of; 
+% Open a new figure
+A.of
 
-%% 
 
 %% Saving 3d image files
 

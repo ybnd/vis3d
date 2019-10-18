@@ -1,4 +1,4 @@
-classdef InteractiveMethodSelector < dynamicprops
+classdef InteractiveMethodSelector < matlab.mixin.Copyable
     % GUI element to handle 'selecting' CubeInteractiveMethod instances
     % i.e.: a 'ring control' to select slice or postprocess method -> selected instance adds parameters to GUI etc.
     
@@ -10,6 +10,7 @@ classdef InteractiveMethodSelector < dynamicprops
     end
     
     properties(Hidden=true)  
+        selected_index;
         im_gui = interactive_methods_gui();
         parname = {};
         figure;
@@ -39,15 +40,16 @@ classdef InteractiveMethodSelector < dynamicprops
             % Sanity check: item in obj.item.field?
             if isfield(obj.items, item)
                 selected = obj.items.(item);
+                obj.selected = selected;
+                obj.selected_index = find(strcmp(item, fields(obj.items)));
                 try
-                    obj.selected = selected;
                     if ishandle(obj.figure)
                         obj.replace_controls(selected)
                     end
                     set(obj.gui_handle, 'Value', find(strcmp(fields(obj.items),item))) % Update UI (e.g. handle explicit calls 'from outside')
                     obj.callback() % todo: this may not be a good idea if values for (source, event) are actually used!
                 catch err
-                    %todo: should not show warnings if GUI has not been built yet!
+                    % Don't warn here
                 end
             else
                 warning('Requested field %s does not exist.', item)
@@ -63,16 +65,44 @@ classdef InteractiveMethodSelector < dynamicprops
             end
         end
         
-        function values = get(obj, parameter)
-            % Set parameter to value for all InteractiveMethods in obj.items
-            values = struct();
+        function value = get(obj, parameter)
+            % Get parameter value
             
             options = fields(obj.items);
-            for i = 1:length(options)
+            i = 1;
+            while ~exist('value', 'var') && i<=length(options)
                 item = obj.items.(options{i});
-                value = item.get(parameter);
-                if ~isempty(value)
-                    values.(options{i}) = value;
+                v = item.get(parameter);
+                if ~isempty(v)
+                    value = v;
+                end
+                i = i+1;
+            end
+            
+            if ~exist('value', 'var')
+               value = ''; 
+            end
+        end
+        
+        function state = get_state(obj)
+            state = struct();
+            state.selected = obj.selected.method;
+            state.current = struct();
+            
+            item_fields = fields(obj.items);
+            for i = 1:length(item_fields)
+                state.current.(item_fields{i}) = obj.items.(item_fields{i}).current;
+            end
+            
+        end
+        
+        function set_state(obj, state)
+            obj.select(state.selected);
+            
+            item_fields = fields(obj.items);
+            for i = 1:length(item_fields)
+                if any(strcmp(item_fields{i}, fields(state.current)))
+                    obj.items.(item_fields{i}).current = state.current.(item_fields{i});
                 end
             end
         end
@@ -96,7 +126,7 @@ classdef InteractiveMethodSelector < dynamicprops
             
             gui_handle = uicontrol( ...
                 'Parent', figure, 'Style', 'popupmenu', 'TooltipString', obj.name, ...
-                'String', fields(obj.items), 'FontSize', gui.selector_fontsize, ...
+                'String', fields(obj.items), 'Value', obj.selected_index, 'FontSize', gui.selector_fontsize, ...
                 'Position', [anchor(1), anchor(2), gui.selector_width+gui.gap+gui.controls_max_width, gui.height] ...
             );
             addlistener(gui_handle, 'Value', 'PostSet', @obj.gui_select_callback);

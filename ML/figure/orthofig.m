@@ -77,9 +77,7 @@ classdef orthofig < cubefig
             
             obj.slice.build_gui(obj.f, [obj.border, 47], @obj.ui_update_images, {'position', 'axis'});
             obj.postprocess.build_gui(obj.f, [obj.border, 47-gui.height-gui.gap], @obj.ui_update_images, {'global range'});
-            obj.postprocess.select('dBs_global');
-            obj.postprocess.set('global range', obj.range);
-            
+                        
             
 
             obj.control.Z_slider = uicontrol('style', 'slider', ...
@@ -163,7 +161,7 @@ classdef orthofig < cubefig
             obj.current_slice(3) = new_Z_slice;
             obj.control.Z_text.String = sprintf('z(%d)',new_Z_slice);
 
-            [obj.image.temp.XY, obj.image.temp.rawXY] = obj.C.slice(obj.current_slice(3),'z');
+            [obj.image.temp.XY, obj.image.temp.rawXY] = obj.C.slice(obj.current_slice(3),'z', obj.slice, obj.postprocess);
             obj.image.XY.set('CData',obj.image.temp.XY);
 
             obj.place_overlay;
@@ -176,7 +174,7 @@ classdef orthofig < cubefig
             obj.current_slice(2) = new_Y_slice;
             obj.control.Y_text.String = sprintf('y(%d)',new_Y_slice);
                         
-            [obj.image.temp.XZ, obj.image.temp.rawXZ] = obj.C.slice(obj.current_slice(2),'y');
+            [obj.image.temp.XZ, obj.image.temp.rawXZ] = obj.C.slice(obj.current_slice(2),'y', obj.slice, obj.postprocess);
             obj.image.XZ.set('CData', obj.image.temp.XZ);
             
             obj.place_overlay;
@@ -189,7 +187,7 @@ classdef orthofig < cubefig
             obj.current_slice(1) = new_X_slice;
             obj.control.X_text.String = sprintf('x(%d)', new_X_slice);
             
-            [obj.image.temp.YZ, obj.image.temp.rawYZ] = obj.C.slice(obj.current_slice(1),'x');
+            [obj.image.temp.YZ, obj.image.temp.rawYZ] = obj.C.slice(obj.current_slice(1),'x', obj.slice, obj.postprocess);
             obj.image.YZ.set('CData', obj.image.temp.YZ);
 
             obj.place_overlay;
@@ -355,9 +353,9 @@ classdef orthofig < cubefig
         end
         
         function ui_update_images(obj)
-            [obj.image.temp.XY, obj.image.temp.rawXY] = obj.C.slice(obj.current_slice(3),'z');
-            [obj.image.temp.XZ, obj.image.temp.rawXZ] = obj.C.slice(obj.current_slice(2),'y');
-            [obj.image.temp.YZ, obj.image.temp.rawYZ] = obj.C.slice(obj.current_slice(1),'x');
+            [obj.image.temp.XY, obj.image.temp.rawXY] = obj.C.slice(obj.current_slice(3),'z', obj.slice, obj.postprocess);
+            [obj.image.temp.XZ, obj.image.temp.rawXZ] = obj.C.slice(obj.current_slice(2),'y', obj.slice, obj.postprocess);
+            [obj.image.temp.YZ, obj.image.temp.rawYZ] = obj.C.slice(obj.current_slice(1),'x', obj.slice, obj.postprocess);
 
             obj.image.XY.set('CData', obj.image.temp.XY);
             obj.image.XZ.set('CData', obj.image.temp.XZ);

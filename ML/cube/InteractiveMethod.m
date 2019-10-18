@@ -1,4 +1,4 @@
-classdef InteractiveMethod < dynamicprops    
+classdef InteractiveMethod < matlab.mixin.Copyable    
     %{ 
     Cube plugin class for interactive methods
     

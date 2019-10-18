@@ -35,7 +35,7 @@ classdef cubefig < handle
         end
         
         function build(obj)
-            [obj.slice, obj.postprocess] = obj.C.get_selectors();
+            [obj.slice, obj.postprocess] = obj.C.copy_selectors();
             
             if ~ishandle(obj.f)
                obj.f = figure; 

@@ -29,6 +29,8 @@ File format & i/o:
         meta = struct();                                            % metadata struct    
     end
     properties(Hidden = true)
+        range
+        
         selectors                                                   % Struct of InteractiveMethodSelector instances: see interactive_methods.m
         filesize                                                    % size of file in bytes
         filesize_gb                                                 % size of file in GB
@@ -61,6 +63,7 @@ File format & i/o:
             
             if do_load
                 obj.load
+                obj.get_range()
             end
         end    
     end
@@ -268,9 +271,6 @@ File format & i/o:
                     Figsize +/-: Ctrl + Scroll
             %}
             
-            % Reload interactive methods
-            obj.im_update();
-            
             switch nargin
                 case 1
                     M = NaN;  % todo: triggers the following if statement (ugly ugh)
@@ -300,9 +300,6 @@ File format & i/o:
         
         function sf = sf(obj, plane, M, f)
             % Slice view of obj.cube (scroll to scan through the cube)
-            
-            % Reload interactive methods
-            obj.im_update();
             
             switch nargin
                 case 1
@@ -340,7 +337,7 @@ File format & i/o:
                         [~, ~, vertical] = size(obj.cube);
                 end
                 r = monitor_resolution();
-                M = r(2) / vertical * (3/5); % Default: XY image -> 2/3 of max monitor height // doesn't work well with Thorlabs OCT cubes (muuch more z pixels, need to count other projections also)
+                M = r(2) / vertical * (3/7); % Default: XY image -> 2/3 of max monitor height // doesn't work well with Thorlabs OCT cubes (muuch more z pixels, need to count other projections also)
             end
   
             sf = slicefig(obj, f, M, slice_axis); % todo: should have same contrast stuff as ortho...
@@ -391,47 +388,82 @@ File format & i/o:
             % Alias for obj.zpos
             z = obj.zpos();
         end
+        
+        function get_range(obj)
+            if isempty(obj.range)
+                if ~isempty(obj.cube)
+                    obj.range = [rmin(obj.cube), rmax(obj.cube)];
+                    obj.im_set('global range', obj.range);
+                else
+                    obj.range = [0 2^32];
+                    warning('Could not get global range: data not loaded!')
+                end
+            end
+        end
     end
     
     %% Interface to InteractiveMethods
     methods(Access=public)
-        function [slice, raw_slice] = slice(obj, k, axis)
+        function [slice, raw_slice] = slice(obj, k, axis, slice, postprocess)
             % Returns a slice of obj.cube at index k on axis using the selected slicing method
             %   * Postprocess using the selected postprocess method; also return a 'raw' slice.
-            raw_slice = obj.selectors.slice.selected.do(obj.cube, k, axis);
-            slice = obj.selectors.postprocess.selected.do(raw_slice);
+            
+            switch nargin
+                case 3
+                    slice = obj.selectors.slice;
+                    postprocess = obj.selectors.postprocess;
+            end
+            
+            raw_slice = slice.selected.do(obj.cube, k, axis);
+            slice = postprocess.selected.do(raw_slice);
         end
         
-        function [slice, postprocess] = get_selectors(obj)
+        function [slice, postprocess] = copy_selectors(obj)
             % Returns handles to 'slice' and 'postprocess' InteractiveMethodSelectors
             %   * Should be used when adding InteractiveMethodSelector UI elements for a Cube instance to a figure
-            slice = obj.selectors.slice;
-            postprocess = obj.selectors.postprocess;
+            slice = copy(obj.selectors.slice);
+            postprocess = copy(obj.selectors.postprocess);
         end
         
         function im_update(obj)
-            % Update interactive method selector struct
-            slice_method = obj.selectors.slice.selected.method;
-            postprocess_method = obj.selectors.postprocess.selected.method;
+            % Update selectors (keep current)
+            try
+                slice_method = obj.selectors.slice.get_state();
+                postprocess_method = obj.selectors.postprocess.get_state();
+
+                obj.selectors = interactive_methods;
+
+                obj.selectors.slice.set_state(slice_method);
+                obj.selectors.postprocess.set_state(postprocess_method);
+            catch err
+                warning(err.message)
+                obj.selectors = interactive_methods;
+            end
             
-            obj.selectors = interactive_methods;
+            % Set global range for postprocess methods
             
-            obj.selectors.slice.select(slice_method);
-            obj.selectors.postprocess.select(postprocess_method);
+            obj.selectors.postprocess.set('global range', obj.range);
         end
         
         function im_select(obj, varargin) 
-            % For InteractiveMEthodSelector 'selector', select InteractiveMethod 'method' 
+            % For InteractiveMethodSelector 'selector', select InteractiveMethod 'method' 
             %   * 'selector' and 'method' must match exactly; see interactive_methods.m for details.
-            for i = 1:length(fields(obj.selectors))
-               selector_fields = fields(obj.selectors);
-               selector = obj.selectors.(selector_fields{i});
+            found_match = false;            
+            selector_fields = fields(obj.selectors);
+            for i = 1:length(selector_fields)               
+               selector = obj.selectors.(selector_fields{i});    
                
                for j = 1:(length(varargin))
                    if any(strcmp(varargin{j},fields(selector.items)))
                        selector.select(varargin{j});
+                       found_match = true;
                    end
                end
+            end
+            
+            if ~found_match
+                warning('InteractiveMethod(s) %s is/are not defined in InteractiveMethodSelector(s) %s', ...
+                    strjoin(varargin, ', '), strjoin(selector_fields, ', '))
             end
         end
         
@@ -471,28 +503,23 @@ File format & i/o:
             
             % For a 'readable' overview: prettyjson(jsonencode(Cube.im_get()))
             
-            if ~isempty(varargin)
-                parameters = varargin;
-            else
-                parameters = unique([obj.selectors.slice.parname obj.selectors.postprocess.parname]);
-            end
-            
-            values = struct();
+            values = cell(1,length(varargin));
             for i = 1:length(fields(obj.selectors))
-               
                
                selector_fields = fields(obj.selectors);
                selector = obj.selectors.(selector_fields{i});
                
-               for j = 1:length(parameters)
-                   value = selector.get(parameters{j});
-                   if ~isempty(fields(value))
-                       values.(fieldsafe(parameters{j})) = value;
+               for j = 1:length(varargin)
+                   v = selector.get(varargin{j});
+                   if ~isempty(v)
+                       values{j} = v;
                    end
                end
             end
             
-            
+            if length(values) == 1
+               values = values{1}; 
+            end
         end
     end
 end
