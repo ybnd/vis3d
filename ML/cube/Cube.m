@@ -244,9 +244,6 @@ File format & i/o:
                 switch lower(input(sprintf('Overwrite file %s? (y/n) \n', strrep(path, '\', '\\')), 's'))
                     case {'y', 't', '1'}
                         do_save = true;
-                        if exist(path, 'file') == 2
-                            delete(path); % <path>.json, <path>.cube, ... will be overwritten in Cube.save
-                        end
                     case {'n', 'f', '0'}      
                         do_save = false;
                 end

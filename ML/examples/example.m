@@ -34,7 +34,7 @@ A.of;
 %% Saving 3d image files
 
 % Add a new field to the metadata, denoting that the file was replaced
-A.meta.(['at' fieldsafe(datestr(datetime('now')))]) = 'replaced file';
+A.meta.(fieldsafe(['at ' datestr(datetime('now'))])) = 'replaced file';
 
 % Save as json/binary
 savecube(A, [folder '\example']);

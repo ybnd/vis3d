@@ -15,12 +15,6 @@
     ], 
     "meta":{
         "What_is_this":"This is a metadata field, and it contains arbitrary metadata. For example, a file written by the OCM setup will include a bunch of info about the state of the setup at the time the image was taken.", 
-        "at17_Oct_2019_17_00_23":"replaced file", 
-        "at17_Oct_2019_17_01_01":"replaced file", 
-        "at17_Oct_2019_17_02_22":"replaced file", 
-        "at17_Oct_2019_17_03_24":"replaced file", 
-        "at17_Oct_2019_17_05_47":"replaced file", 
-        "at17_Oct_2019_17_07_33":"replaced file", 
-        "at17_Oct_2019_17_08_47":"replaced file"
+        "at18_Oct_201912_11_30":"replaced file"
     }
 }
