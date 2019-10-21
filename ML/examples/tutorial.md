@@ -1,4 +1,4 @@
-# vis3d example
+# vis3d tutorial
 
 You can follow along with [example.m](example.m) . Make sure MATLAB is 'pointed' to the `vis3d` directory!
 
