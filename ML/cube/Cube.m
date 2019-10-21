@@ -472,10 +472,11 @@ File format & i/o:
             % Sets any number of InteractiveMEthod parameters, specified as 'parameter', value
             %   * Searches for 'parameter' in all InteractiveMethods in all InteractiveMethodSelectors
             %       -> setting values through GUI is more efficient
-            %   * 'parameter' must match exactly, see innteractive_methods.m for details.
+            %   * 'parameter' must match exactly, see interactive_methods.m for details.
             for i = 1:length(fields(obj.selectors))
                selector_fields = fields(obj.selectors);
                selector = obj.selectors.(selector_fields{i});
+               
                
                for j = 1:(length(varargin)/2)
                    selector.set(varargin{2*(j-1)+1}, varargin{2*(j-1)+2})
@@ -487,7 +488,16 @@ File format & i/o:
             % Resets InteractiveMethod parameters (separated by commas) to their default value
             %   'selector' and 'method' must match exactly; see interactive_methods.m for details.
             
-            % todo: if varargin is empty: reset everything to default
+            if isempty(varargin)
+                selector_fields = fields(obj.selectors);
+                varargin = {};
+                for i = 1:length(fields(obj.selectors))
+                    selector = obj.selectors.(selector_fields{i});
+                    varargin{end+1} = selector.parname;
+                end
+                varargin = union(varargin{:});
+            end            
+            
             for i = 1:length(fields(obj.selectors))
                selector_fields = fields(obj.selectors);
                selector = obj.selectors.(selector_fields{i});

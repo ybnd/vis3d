@@ -1,23 +1,25 @@
 classdef InteractiveMethodSelector < matlab.mixin.Copyable
-    % GUI element to handle 'selecting' CubeInteractiveMethod instances
-    % i.e.: a 'ring control' to select slice or postprocess method -> selected instance adds parameters to GUI etc.
+%{
+Groups multiple InteractiveMethod instances and provides an interface to select one, and patch calls through to it
+    
+%}
     
     properties
-        name
-        items
-        selected
-        disabled_parameters = {};
+        name                        
+        items = struct()            % Structure array of InteractiveMethod instances. Field names are used as IDs.
+        selected                    % Handle to currently selected InteractiveMethod instance
     end
     
     properties(Hidden=true)  
-        selected_index;
+        hidden_parameters = {};     % These parameters will not appear in the GUI
+        selected_index;             % Index of the currently selected InteractiveMethod instance
         im_gui = interactive_methods_gui();
-        parname = {};
-        figure;
-        callback = false;
-        gui_handle = false;
-        controls = false;
-        controls_anchor = false;
+        parname = {};               % Unique set of parameter names (IDs)
+        figure;                     % Handle to the figure obj is constructed in
+        callback = false;           % Function to execute on InteractiveMethod selection
+        gui_handle = false;         % Handle to popup menu
+        controls = false;           % Handle to InteractiveMethod GUI controls
+        controls_anchor = false;    % Anchor for InteractiveMethod GUI controls
     end
     
     methods(Access=public)
@@ -37,7 +39,7 @@ classdef InteractiveMethodSelector < matlab.mixin.Copyable
         end
         
         function selected = select(obj, item)
-            % Sanity check: item in obj.item.field?
+            % Select an InteractiveMethod
             if isfield(obj.items, item)
                 selected = obj.items.(item);
                 obj.selected = selected;
@@ -66,8 +68,7 @@ classdef InteractiveMethodSelector < matlab.mixin.Copyable
         end
         
         function value = get(obj, parameter)
-            % Get parameter value
-            
+            % Get first value for matching parameter name (!)            
             options = fields(obj.items);
             i = 1;
             while ~exist('value', 'var') && i<=length(options)
@@ -85,29 +86,40 @@ classdef InteractiveMethodSelector < matlab.mixin.Copyable
         end
         
         function state = get_state(obj)
+            % Return full state
             state = struct();
             state.selected = obj.selected.method;
             state.current = struct();
+            state.default = struct();
+            state.minimum = struct();
+            state.maximum = struct();
             
             item_fields = fields(obj.items);
             for i = 1:length(item_fields)
                 state.current.(item_fields{i}) = obj.items.(item_fields{i}).current;
-            end
-            
+                state.default.(item_fields{i}) = obj.items.(item_fields{i}).default;
+                state.minimum.(item_fields{i}) = obj.items.(item_fields{i}).minimum;
+                state.minimum.(item_fields{i}) = obj.items.(item_fields{i}).minimum;
+            end  
         end
         
         function set_state(obj, state)
+            % Restore state
             obj.select(state.selected);
             
             item_fields = fields(obj.items);
             for i = 1:length(item_fields)
                 if any(strcmp(item_fields{i}, fields(state.current)))
                     obj.items.(item_fields{i}).current = state.current.(item_fields{i});
+                    obj.items.(item_fields{i}).default = state.default.(item_fields{i});
+                    obj.items.(item_fields{i}).minimum = state.minimum.(item_fields{i});
+                    obj.items.(item_fields{i}).maximum = state.maximum.(item_fields{i});
                 end
             end
         end
         
         function reset(obj, parameter)
+            % Reset current values to default
             options = fields(obj.items);
             for i = 1:length(options)
                 item = obj.items.(options{i});
@@ -115,13 +127,13 @@ classdef InteractiveMethodSelector < matlab.mixin.Copyable
             end
         end
         
-        function gui_handle = build_gui(obj, figure, anchor, callback, disabled_parameters)
+        function gui_handle = build_gui(obj, figure, anchor, callback, hidden_parameters)
             switch nargin
                 case 4
-                    disabled_parameters = {};               
+                    hidden_parameters = {};               
             end
             
-            obj.disabled_parameters = disabled_parameters;
+            obj.hidden_parameters = hidden_parameters;
             gui = obj.im_gui;
             
             gui_handle = uicontrol( ...
@@ -161,7 +173,7 @@ classdef InteractiveMethodSelector < matlab.mixin.Copyable
                 % todo: Try not to even 'try' this when GUI not buily completely yet?
                 % warning(err.message);
             end
-            obj.controls = selected.build_gui(obj.figure, obj.controls_anchor, obj.callback, obj.disabled_parameters);
+            obj.controls = selected.build_gui(obj.figure, obj.controls_anchor, obj.callback, obj.hidden_parameters);
             set(obj.gui_handle, 'UserData', selected);
             
             gui = interactive_methods_gui;
