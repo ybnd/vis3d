@@ -1,5 +1,6 @@
 function [im] = interactive_methods()
-%% This function returns a struct of InteractiveMethodSelector instances.
+%% Returns a struct of InteractiveMethodSelector instances.
+
 %{
 Any methods included in 'im' will appear in the appropriate method selection interfaces in the GUI scripts (e.g. orthofig, savecube, ...)
 To add new interactive methods, just append them to im as shown below

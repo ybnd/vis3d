@@ -1,5 +1,6 @@
 classdef Cube < dynamicprops
 % Interface to 3d data   
+
 %{
 Description:
 ============
