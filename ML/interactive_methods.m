@@ -1,15 +1,25 @@
 function [im] = interactive_methods()
-    %% This function returns a struct of InteractiveMethod instances.
+%% This function returns a struct of InteractiveMethodSelector instances.
+%{
+Any methods included in 'im' will appear in the appropriate method selection interfaces in the GUI scripts (e.g. orthofig, savecube, ...)
+To add new interactive methods, just append them to im as shown below
+    - Initialization call signature:
+        InteractiveMethod(
+            method handle (@method)
+            parameter names (cell array of strings)
+            parameter defaults (cell array of 0d numerics or strings. other values work in principle, but don't play well with GUI elements)
+            parameter lower limit (must match the 'defaults' cell array)
+            parameter upper limit (must match the 'defaults' cell array)
+        );
+    - In order to avoid errors due to name/parameter changes, don't use InteractiveMethods explicitly, i.e. calling <InteractiveMethod instance>.do(...)
+        * Instead, InteractiveMethods should be called only through handles provided by InteractiveMethodSelector instances
 
-    % The methods in 'im' will appear in the appropriate method selection interfaces in the GUI or CLI of select
-    % scripts (e.g. orthofig, savecube, ...)
+Slice and postprocess InteractiveMethods should follow the following function signatures:
+    im.slice:          [I] = <function>(C,k,axis, ...) with C <- Cube.cube, k <- slice index, axis <- slice axis
+    im.postprocess:    [I] = <function>(I, ...) with I <- output of an InteractiveMethod from im.slice
 
-    % To add new interactive methods, just append them to the struct (see below)
-
-    %       - In order to avoid errors due to name/parameter changes, don't use these methods explicitly, i.e. calling im.<...>.do(...)
-    %           * Instead, InteractiveMethods should be called only through handles provided by InteractiveMethodSelector instances
-
-    % !!! PLEASE MAKE SURE ALL PARAMETERS YOU MAY WANT TO ADDRESS INDIVIDUALLY HAVE UNIQUE NAMES !!!
+!!! PLEASE MAKE SURE ALL PARAMETERS YOU MAY WANT TO ADDRESS INDIVIDUALLY HAVE UNIQUE NAMES !!!
+%}
     
     % Slice methods
     im_slice = struct( ...
@@ -23,7 +33,7 @@ function [im] = interactive_methods()
     % Postprocess methods
     im_postprocess = struct( ...
         'normalize_local', ...
-            InteractiveMethod(@normalize_local, {}, {}), ...
+            InteractiveMethod(@normalize_local), ...
         'normalize_global', ...
             InteractiveMethod(@normalize_global, {'global range'}, {[0 2^32]}), ...
         'dBs_local', ...
@@ -31,7 +41,7 @@ function [im] = interactive_methods()
         'dBs_global', ...
             InteractiveMethod(@dBs_global, {'global floor', 'global ceiling', 'global range'}, {0, 60, [0 2^32]}), ...
         'none', ...
-            InteractiveMethod(@none, {}, {})...
+            InteractiveMethod(@none)...
     );
 
     im = struct( ...
@@ -86,7 +96,7 @@ function [im] = interactive_methods()
     end
 
     %% Postprocess methods -> modify an XY / XYZ image I
-    % Function signature: [I] = <function>(I, ...) with I <- output of an InteractiveMEthod from im.slice
+    % Function signature: [I] = <function>(I, ...) with I <- output of an InteractiveMethod from im.slice
 
     function [I] = none(I)
     end

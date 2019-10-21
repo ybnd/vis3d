@@ -47,7 +47,7 @@ A.sf; A.sf('yz');
 A.of; 
 ```
 
-You can navigate the cube by scrolling. To scroll the XZ and YZ views in `Cube.of`, scroll while pressing down Shift and Alt. 
+You can navigate the cube by scrolling. To scroll the XZ and YZ views in `Cube.of`, scroll while pressing down <Shift> and <Alt>.  Alternatively, you can also click and drag within the XY, YZ and XZ views to navigate.
 
 #### InteractiveMethods
 
@@ -57,7 +57,7 @@ The most basic *slice method*, `slice`, just slices a part of the cube an index 
 
 These slice images are then further modified by a *postprocess method*. In this way, you can adjust the brightness, contrast, ... of the image without actually modifying the raw data. For example, `dBs_global` transforms the slice image to a shifted decibel representation, applies a lower and upper cutoff, and finally rescales this image so that the minimum and maximum value of `A.cube` map to 0 and 1 respectively.
 
-New *slice* and *postprocess methods* can be defined by adding them in [`interactive_methods.m`](../interactive_methods.m); there you can also define additional parameters, which will then be accessible in `Cube.sf` and `Cube.of`
+New *slice* and *postprocess methods* can be defined by adding them in [`interactive_methods.m`](../interactive_methods.m); there you can also define additional parameters, which will then be accessible in `Cube.sf` and `Cube.of`.
 
 ##### Interacting with InteractiveMethods over the command line
 

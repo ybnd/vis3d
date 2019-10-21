@@ -34,6 +34,13 @@ classdef InteractiveMethod < matlab.mixin.Copyable
     methods(Access = public)
         function obj = InteractiveMethod(methodh, parname, default, minimum, maximum, options, expects)
             switch nargin
+                case 1
+                    parname = {};
+                    default = {};
+                    minimum = {};
+                    maximum = {};
+                    options = {};
+                    expects = @single;
                 case 3
                     minimum = {};
                     maximum = {};
@@ -175,16 +182,6 @@ classdef InteractiveMethod < matlab.mixin.Copyable
 %                     obj.callback(); % todo: temporary, this is not a good idea if values for (source, event) are used!
                 end
             end
-        end
-        
-        function cli(~)
-            % Prompt own parameters in the MATLAB commandline
-            %   User enters string, also show default values
-            %       - If empty string (i.e. just pressed enter) -> use default values
-            %       - If format ~ 156 156 stuff 156 -> obj.current = {156, 156, 'stuff', 156}; assume order; to skip a value, use ~
-            %       - If 'help' -> show some help
-            %       - If par1 156 par7 156 -> query index by parname, prompt again if specified parname not found
-            %       (Would be nice: - Also parse arrays ~ MATLAB syntax, i.e. ignore spaces within brackets)
         end
     end
     

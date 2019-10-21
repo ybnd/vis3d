@@ -28,7 +28,7 @@ classdef InteractiveMethodSelector < matlab.mixin.Copyable
             parname = [];
             item_fields = fields(items);
             for i = 1:length(item_fields)
-                parname = [parname items.(item_fields{i}).parname];
+                parname = [parname items.(item_fields{i}).parname]; % inefficient seems ok in this case
             end
             obj.parname = unique(parname);
             
