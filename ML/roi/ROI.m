@@ -2,46 +2,45 @@ classdef ROI < handle
     % Region of Interest
     
     properties
-        C
+        C               % Cube instance
         
-        rect % todo: maybe add option to select ellipse instead of rectangle
-        position
-
+        position        % ROI position vector
+        slice           % ROI slice
+        axis = 'z';     % ROI slice axis
+        
+        image           % Cube image at ROI slice, cropped around ROI
+        binary          % Binary image of ROI.image
+        
         id
         number
         
-        cols % todo: hide thise ones
+        profile
+    end
+    properties(Hidden = true)
+        roi_handle              % todo: currently only works with images.roi.Rectangle, other classes can be implemented https://nl.mathworks.com/help/images/roi-based-processing.html 
+        cols
         rows
         Nz
-        slice
-        
-        slice_method = @normalize_slice
-        slice_args = []
-        image
-        binary
-        mask
-        
-        profile
         
         overlay = {}
     end
     
     methods
-        function obj = ROI(C, rect, number, slice, overlay_axis)
+        function obj = ROI(C, roi_handle, number, slice, overlay_axis)
             switch nargin
                 case 4
                     obj.overlay.axis = overlay_axis;
             end
             
             obj.C = C;
-            obj.rect = rect;
+            obj.roi_handle = roi_handle;
 
-            obj.position = floor(rect.Position);
+            obj.position = floor(roi_handle.Position);
             obj.cols = obj.position(1):obj.position(1)+obj.position(3);
             obj.rows = obj.position(2):obj.position(2)+obj.position(4);
             obj.Nz = length(obj.C.position);
             obj.slice = slice;
-            % todo: can we trust this not to break? -> nope, we can't!
+            % todo: can we trust this not to break? -> nope, we can't, really!
             
             obj.get_binary
             
@@ -50,41 +49,17 @@ classdef ROI < handle
             obj.id = get_id(number);
             obj.number = number;
             
-            obj.rect.delete;    % what if: don't delete it, make it modifyable?
-        end
-        
-        function get_image(obj)
-            [I, ~] = obj.C.slice(obj.slice,'z');    % Only handles XY slicing
-            obj.image = I(obj.rows,obj.cols);
-        end
-        
-        function get_binary(obj)
-            if isempty(obj.image)
-                obj.get_image
-            end
-            
-            obj.binary = imbinarize(obj.image); % todo: add more options
-            
-            % Erode & dilate
-            SE = strel('square',2);
-            obj.binary = imdilate(imerode(obj.binary, SE), SE);                 
-        end
-        
-        function compute_intensity(obj)           
-            avgs = zeros(1,obj.Nz);
-            for z = 1:obj.Nz
-                temp = obj.C.cube(obj.rows,obj.cols,z);
-                avgs(z) = mean(temp(obj.binary));
-            end
-            
-            obj.profile = avgs;
+            obj.roi_handle.delete;    % todo: don't delete it: hide it, allow to 'rebuild it' to modify later
         end
         
         function [locs, pks] = get_peaks(obj, MinPeakProminence)
-            [pks, locs] = findpeaks(normalize2(obj.profile), 'MinPeakProminence', MinPeakProminence);
+            [pks, locs] = findpeaks(rescale(obj.profile), 'MinPeakProminence', MinPeakProminence);
         end
         
         function show(obj, overlay_axis)
+            % Show ROI overlay
+            % todo: should build all overlays first, then make them visible to prevent 'snake effect'
+            
             switch nargin
                 case 2
                     obj.overlay.axis = overlay_axis;
@@ -117,6 +92,8 @@ classdef ROI < handle
             
         end
         
+    end
+    methods(Access = protected)        
         function in_gca = is_shown(obj)
             in_gca = false;
             children = get(gca, 'Children');
@@ -125,6 +102,29 @@ classdef ROI < handle
                     in_gca = true;
                 end
             end 
+        end
+        
+        function get_binary(obj)
+            if isempty(obj.image)
+                [I, ~] = obj.C.slice(obj.slice,obj.slice);    % Only handles XY slicing for now!
+                obj.image = I(obj.rows,obj.cols);
+            end
+            
+            obj.binary = imbinarize(obj.image); % todo: add more options
+            
+            % Erode & dilate
+            SE = strel('square',2);
+            obj.binary = imdilate(imerode(obj.binary, SE), SE);                 
+        end
+        
+        function compute_intensity(obj)           
+            avgs = zeros(1,obj.Nz);
+            for z = 1:obj.Nz
+                temp = obj.C.cube(obj.rows,obj.cols,z);
+                avgs(z) = mean(temp(obj.binary));
+            end
+            
+            obj.profile = avgs;
         end
     end
 end

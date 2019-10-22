@@ -1,24 +1,25 @@
 classdef orthofig < cubefig 
+% Orthographic (XY, YZ, XZ) slice GUI for Cube 
     
     properties
-        current_slice = [1,1,1];
+        current_slice = [1,1,1];    
         previous_slice = [1,1,1];   
     end
     
     properties (Access = private) 
-        size;
-        range;
+        size;               % Cube.cube size
+        range;              % Cube.cube range
         
         z_ratio = 2;
         pad = [75 0 0 0]
         
         roaming = false;
+
         
-        
-        w_img = 160;     % image controls width
-        d_img_xyz = 20; % distance between image controls and axis controls
-        w_lab = 40;     % axis control label width
-        w_db = 82;      % width of db button
+        w_img = 160;        % image controls width
+        d_img_xyz = 20;     % distance between image controls and axis controls
+        w_lab = 40;         % axis control label width
+        w_db = 82;          % width of db button
         
         histograms = struct('bins', 200, 'samples', 50000);
         show_histograms = false;

@@ -28,10 +28,26 @@ A.sf('xy');
 % Selecting methods
 A.im_select('blur_slice', 'dBs_global')
 % Working with parameters
-A.im_set('XY sigma', 10 * A.im_get('Z sigma'))
+A.im_set('XY sigma', A.im_get('Z sigma'))
 
 % Open a new figure
 A.of
+
+%% Working with CubeROIs
+
+% Initialize a CubeROIs instance; region_thickness.m is a subclass of CubeROIs with some methods to compute layer
+% thickness over the regions of interest
+B = region_thickness(A);
+
+% Select some ROIs
+B.select;
+
+% Show profiles
+B.profiles;
+
+% Calculate distances
+d = B.distances();
+disp(d)
 
 
 %% Saving 3d image files

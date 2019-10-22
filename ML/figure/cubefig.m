@@ -1,9 +1,9 @@
 classdef cubefig < handle
-	properties
-        C
+% Base class for Cube GUI figures
 
-       
-        f = false;
+	properties
+        C                                       % Cube instance handle
+        f = false;                              % Figure handle
     end
     
     properties (Access = protected)
@@ -45,6 +45,7 @@ classdef cubefig < handle
             set(obj.f, 'UserData', obj);
             set(obj.f, 'MenuBar', 'none');
             set(obj.f, 'Resize', 'off');
+            set(obj.f, 'CloseRequestFcn', @obj.close);
         end
         
         function ensure_min_size(obj)
@@ -53,8 +54,8 @@ classdef cubefig < handle
                 % ! will mess up unreasonably small images though. Shouldn't come up too often, I hope.
         end
         
-        function close(obj)
-            close(obj.f);
+        function close(obj, ~, ~)
+            delete(obj.f);
             obj.f = false;
         end
     end

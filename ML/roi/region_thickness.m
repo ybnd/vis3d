@@ -1,6 +1,14 @@
-classdef p2p_distance < cube_ROIs
+classdef region_thickness < CubeROIs
+    % Computes single layer thickness at ROIs in Cube as the peak-to-peak distance in the ROI-masked depth profile
+    properties
+        MinPeakProminence = 0.1;    % Minimal ROI profile peak prominence (builtin function get_peaks)
+    end
+    
     methods
-        function [D, R, S, A] = distances(obj, MinPeakProminence)
+        function [D, R, S] = distances(obj, MinPeakProminence)
+            % Returns unfiltered peak-to-peak distances 
+            % D: distances, R: peak intensity ratios, S: ROI index (todo: why S???)
+            
             switch nargin
                 case 2
                     obj.MinPeakProminence = MinPeakProminence;                
@@ -8,7 +16,7 @@ classdef p2p_distance < cube_ROIs
             
             obj.C.load();
             
-            D = []; R = []; S = []; A = [];
+            D = []; R = []; S = [];
             
             j = 1;
             for i = 1:length(obj.ROIs)
@@ -20,37 +28,40 @@ classdef p2p_distance < cube_ROIs
                     intensities = combnk(pks, 2);
 
                     [combos,~] = size(positions);
-                    Di = zeros(1,combos); Ri = zeros(1,combos); Si = zeros(1,combos); Ai = zeros(1,combos);
+                    Di = zeros(1,combos); Ri = zeros(1,combos); Si = zeros(1,combos);
 
                     for combo = 1:combos
                         dist = positions(combo,:);
                         inty = intensities(combo,:);
-                        Di(combo) = abs(single(obj.z(dist(1))) - single(obj.z(dist(2))))*1e-3;
+                        Di(combo) = abs(single(obj.z(dist(1))) - single(obj.z(dist(2))));
                         Ri(combo) = single(max(inty)) / single(min(inty));
                         Si(combo) = i;
                         j = j+1;
                     end
 
-                    D = [D, Di]; R = [R, Ri]; S = [S, Si]; A = [A, Ai];
+                    D = [D, Di]; R = [R, Ri]; S = [S, Si];
                 end
             end            
         end
         
-        function [Df, Rf, Sf, Af] = filtered_distances(obj, MinPeakProminence)
+        function [Df, Rf, Sf] = filtered_distances(obj, MinPeakProminence)
+            % Returns filtered peak-to-peak distances 
+            % Df: distances, Rf: peak intensity ratios, Sf: ROI index (todo: why S???)
+            % 
             switch nargin
                 case 2
                     obj.MinPeakProminence = MinPeakProminence;                
             end
             
-            [D,R,S,A] = obj.distances(obj.MinPeakProminence);
+            [D,R,S] = obj.distances(obj.MinPeakProminence);
             
             Sf = []; Sm = [];
             
             for i = 1:max(S)
                 if sum(S == i) > 1
-                    Sm = [Sm, i];
+                    Sm = [Sm, i];   % ROI i appears multiple times -> apply filtering step.
                 elseif sum(S == i) == 1
-                    Sf = [Sf, i];
+                    Sf = [Sf, i];   % ROI i appears only once -> keep as-is
                 end
             end
             
@@ -60,7 +71,7 @@ classdef p2p_distance < cube_ROIs
             if ~isempty(Sm)
                 try
                     [~,idx] = intersect(S,Sf);
-                    Df = D(idx); Rf = R(idx); Af = A(idx);
+                    Df = D(idx); Rf = R(idx);   
                 catch
                     disp('Something is wrong')
                 end
@@ -70,19 +81,17 @@ classdef p2p_distance < cube_ROIs
                     outs = D(S == m);
                     [~, order] = sort(abs(outs - median(distribution)));
 
-                    Df = [Df, outs(order(1))]; Rf = [Rf, R(order(1))]; Af = [Af, A(order(1))]; % todo: indeces not right
+                    Df = [Df, outs(order(1))]; Rf = [Rf, R(order(1))]; % todo: indeces not right!
                 end
             else
-                Df = D; Rf = R; Sf = S; Af = A;
+                Df = D; Rf = R; Sf = S;
             end
-
-            
         end
         
         function profiles(obj)
             figure;
             obj.C.load();
-            zz = (single(obj.z)-single(obj.z(1)))*1e-3;            
+            zz = (single(obj.z)-single(obj.z(1)));            
             
             for i = 1:length(obj.ROIs)
                 plot(zz, normalize(obj.ROIs{i}.profile))
@@ -90,7 +99,7 @@ classdef p2p_distance < cube_ROIs
             end    
             
             legend;
-            xlabel('Z-position (µm')
+            xlabel('Z-position')
             ylabel('Average intensity (a.u.)')
             xlim(single([0, max(zz)]))
         end

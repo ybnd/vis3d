@@ -79,6 +79,26 @@ If you open a new figure now, you'll see these changes in effect.
 
 Notice that all parameter and method names are listed in  `interactive_methods.m` and must match exactly for this to work! If you add new *InteractiveMethods*, make sure that parameters you may want to address like this have unique names. Otherwise, results will probably be unexpected.
 
+### Working with regions of interest
+
+The `CubeROIs` class provides some functionality to define *regions of interest* within a 3d image. In this example we'll use a subclass of `CubeROIs`, `region_thickness`, which implements some methods to compute distances between peaks in the depth profile of an ROI. 
+
+The 3d image used in the previous sections contains two layers of 'spheres'; with `region_thickness` we can calculate the distance between them. After executing
+
+```matlab
+B = region_thickness(A);
+B.select;
+```
+
+a slice figure appears, but this time you can also select rectangles in the image with the cursor. For each selection, the `ROI` class computes a binary representation of the selected part, assuming that the part we're interested higher-intensity. This binary image is then used to mask off the ROI and calculate its average depth profile.
+
+The resulting profiles and distances can be evaluated with
+
+```matlab
+B.profiles;
+d = B.distances;
+```
+
 ### Modifying 3d images
 
 The actual 3d image is directly accessible in `A.cube`, and can be modified in any way a regular MATLAB matrix can be modified. 

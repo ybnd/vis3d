@@ -1,4 +1,6 @@
 classdef slicefig < cubefig
+% XY, YZ or XZ slice GUI for Cube
+
     properties   
         current_slice = 1;
         slice_axis = 'z'
@@ -82,12 +84,9 @@ classdef slicefig < cubefig
                 set(obj.f, 'WindowScrollWheelFcn', @obj.scroll_callback);
                 
                 set(obj.f, 'visible', 'on')
-            end
-        
+            end     
             % Image postprocessing controls
             % todo: ...
-            
-
         end
         
         function slider_callback(obj, ~, eventdata)
@@ -115,7 +114,7 @@ classdef slicefig < cubefig
             obj.image.set('CData', I);
         end
         
-        function rh = draw_rectangle(obj)
+        function rh = draw_rectangle(obj) % todo: move to CubeROIs
             % what if: This doesn't need to be a rectangle!
             %   https://nl.mathworks.com/help/images/ref/drawrectangle.html
             %   https://nl.mathworks.com/help/images/ref/imroi-class.html
