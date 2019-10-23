@@ -306,7 +306,7 @@ classdef orthofig < cubefig
 
                     obj.update();
                 catch err
-                    pass
+                    % pass
                 end
             end
         end
@@ -324,7 +324,7 @@ classdef orthofig < cubefig
 
                     obj.update();
                 catch err
-                    pass
+                    % pass
                 end
             end
         end
