@@ -46,7 +46,7 @@ classdef ROI < handle
             
             obj.compute_intensity; % what is with this dumb syntax
 
-            obj.id = get_id(number);
+            obj.id = obj.get_id(number);
             obj.number = number;
             
             obj.roi_handle.delete;    % todo: don't delete it: hide it, allow to 'rebuild it' to modify later
@@ -125,6 +125,22 @@ classdef ROI < handle
             end
             
             obj.profile = avgs;
+        end
+    end
+    
+    methods(Static = true)
+        function id = get_id(number)
+            switch nargin
+                case 0
+                    ordinal = '';
+                case 1
+                    ordinal = [num2str(number) '-'];
+            end
+
+            timing = dec2hex(floor(prod(clock)*100),9);
+            random = dec2hex(randi([0,floor(1e7)],1,1),6);
+
+            id = [ordinal, timing, '-', random];
         end
     end
 end
