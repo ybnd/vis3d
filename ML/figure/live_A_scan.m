@@ -2,8 +2,9 @@ function live_A_scan(I, loc, z, smoothf, reflectivity, do_fwhm, do_smooth)
     % Continuous A_scan display ~ mouse hover point
     % Click mouse -> fix current A_scan on the plot, overlay on others / continuous plot
     
-    % todo: document
+    % todo: maybe document
     % fixme: i'm broken inside
+    % No: this thing is only occasionally useful, and it seems to kinda work. whatever.
 
     try 
         [Nx, Ny, Nz] = size(I);
@@ -115,5 +116,98 @@ function live_A_scan(I, loc, z, smoothf, reflectivity, do_fwhm, do_smooth)
                 break
             end
         end
-    end    
+    end 
+    
+    function hoverFig(src, ~)
+        % Get the coordinates of the clicked point
+    %     hax = ancestor(src, 'axes');
+        point = get(src, 'CurrentPoint');
+        point = round(point(1,1:2));
+
+        % Make it so we can't click on the image multiple times
+        set(src, 'ButtonDownFcn', '')
+
+        % Store the point in the UserData which will cause the outer function to resume
+    %     set(src, 'UserData', point);
+
+        userData = get(src, 'UserData');
+        userData.hover = point;
+        set(src, 'UserData', userData);
+    end
+
+    function clickFig(src, ~)
+        % Get the coordinates of the clicked point
+    %     hax = ancestor(src, 'axes');
+        point = get(src, 'CurrentPoint');
+        point = round(point(1,1:2));
+
+        % Make it so we can't click on the image multiple times
+        set(src, 'ButtonDownFcn', '')
+
+        % Store the point in the UserData which will cause the outer function to resume
+    %     set(src, 'UserData', point);
+
+        userData = get(src, 'UserData');
+        userData.click = point;
+        set(src, 'UserData', userData);
+    end
+
+    function [img_xy] = figPositionToPixel(fig_xy, img)
+    % todo: document me
+
+        switch nargin
+            case 0
+                error('No positon input given.')
+            case 1
+                img = gca(); fig = gcf();
+            case 2
+                fig = gcf();
+        end
+        if ~isempty(fig_xy)
+            x = fig_xy(1); y = fig_xy(2);
+
+            resolution = [img.XData(2), img.YData(2)];
+            AR = resolution(1)/resolution(2);
+
+            % Position vectors: [left bottom width height]        
+            axe = img.Parent;
+
+            left = axe.Position(1);
+            width = axe.Position(3);
+            right = left + width;        
+
+    %         bottom = axe.Position(2);
+    %         height = axe.Position(4);
+    %         top = bottom + height;
+            height = width / AR;
+            bottom = axe.Position(2) + axe.Position(4)/2 - height/2; 
+            top = bottom + height;    
+
+            if ( (left < x)&&(x < right) ) && ( (bottom< y)&&(y < top) )  
+                % cursor is over image box    
+
+
+                img_xy = uint16([ (x-left)/width (y-bottom)/height ].*resolution);
+
+                if img_xy(1) >= resolution(1)-2
+                    img_xy(1) = resolution(1);
+                end
+                if img_xy(2) >= resolution(2)
+                    img_xy(2) = resolution(2)-2;
+                end
+
+                if img_xy(1) == 0
+                    img_xy(1) = 2;
+                end
+                if img_xy(2) == 0
+                    img_xy(2) = 2;
+                end
+            else
+                img_xy = [];
+            end
+        else        
+            img_xy = [];
+        end
+    end
+    
 end
