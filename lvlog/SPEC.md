@@ -81,20 +81,3 @@ Long datasets are saved in separate binary files, which are described in the hea
 To load the dataset, the binary file at `"path"` can be read out with the specifications `"size"`, `"type"` and `"mfmt"`. While `"size"` is just an array of integers, the way `"type"` and `"mfmt"` are specified may differ between applications, and should be handled during loading (see the MATLAB library for the implementation).
 The 3D image is the main dataset in basically all cases, so its binary file is saved in `<file>.cube` extension with `"name": "cube"` in its data description. This is important for the correct function of the MATLAB library. 
 Other datasets are saved as `<file>.data1`, `<file>.data2`, etc. by default, but the extension is arbitrary as long as its specified correctly in the header.
-
-### History
-
-Maybe add a history field:
-
-    "history": {
-        "created": {
-            "time": 12345789,
-            "user": "user@domain"
-        },
-        "modified": [
-            {
-                "time": 12345790,
-                "user": "user@domain"
-            }
-        ]
-    }
