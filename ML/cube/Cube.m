@@ -99,6 +99,7 @@ File format & i/o:
                 if isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
                     % Large dataset -> load from binary file
                     
+                    % Resolve machine format
                     try
                         machinefmt = d.mfmt;
                     catch err
@@ -107,6 +108,8 @@ File format & i/o:
                         machinefmt = obj.mfmt;
                     end
                     
+                    
+                    
                     switch lower(machinefmt)
                         case {'little-endian', 'le', 'ieee-le'}
                             machinefmt = 'ieee-le';
@@ -114,11 +117,36 @@ File format & i/o:
                             machinefmt = 'ieee-be';
                     end
                     
-                    % Read from binary file & trasnform to correct shape
+                    if length(d.size) > 1
+                        % Resolve binary order
+                        try
+                            binorder = d.order;
+                        catch err
+                            warning('Assuming MATLAB-style, column-major ordered binary file. If the cube is mangled, try with <>.cube = permute(<>.cube, [2,1,3])');
+                            binorder = 'column-major'; 
+                        end
+                        
+                        switch lower(binorder)
+                            case {'column', 'column-major', 'c'}
+                                binorder = 'column-major';
+                            case {'row', 'row-major', 'r'}
+                                binorder = 'row-major';
+                        end
+                    end
+                    
+                    % Read from binary file
                     fid = fopen([folder '/' d.path], 'rb+');   
                     A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
                     fclose(fid);
-                    A = reshape(A, d.size');
+                    
+                    % Transform to correct shape (height x width x slice, row-major for LabVIEW & FIJI compatibility)
+                    if length(d.size) > 1 && strcmp(binorder, 'row-major')
+                        d.size(1:(length(d.size)-1)) = d.size((length(d.size)-1):-1:1);
+                        A = reshape(A, d.size');
+                        A = permute(A, [(length(d.size)-1):-1:1, length(d.size)]);
+                    else
+                        A = reshape(A, d.size');
+                    end                   
                     
                     switch d.name
                         case 'cube'
@@ -177,7 +205,8 @@ File format & i/o:
 
                 % Cube data
                 dataspec{1} = struct( ...
-                    'name', 'cube', 'size', size(obj.cube), 'type', class(obj.cube), 'mfmt', obj.mfmt ...
+                    'name', 'cube', 'size', size(obj.cube), 'type', class(obj.cube), ...
+                    'mfmt', obj.mfmt, 'order', 'row-major' ...
                 );      
 
                 % Arbitrary data
@@ -186,7 +215,7 @@ File format & i/o:
                     d = datasets{i};
                     dataspec{1+i} = struct( ...
                         'name', datasets{i}, 'size', size(obj.data.(d)), ...
-                        'type', class(obj.data.(d)), 'mfmt', obj.mfmt);
+                        'type', class(obj.data.(d)), 'mfmt', obj.mfmt, 'order', 'row-major');
                 end
 
                 % Remove empty fields from dataspec
@@ -209,13 +238,18 @@ File format & i/o:
                             [~, savename, saveext] = fileparts(savepath);
                             dataspec{i}.path = [savename, saveext];
                             
+                            if length(size(data_i)) > 1
+                                % Row major order for each slice
+                                data_i = permute(data_i, [(length(size(data_i))-1):-1:1, length(size(data_i))]);
+                            end
+                            
                             fid = fopen(savepath, 'wb+');
                             fwrite(fid, data_i, dataspec{i}.type, dataspec{i}.mfmt);
                             fclose(fid);
                         else
                             % Small dataset -> save to .json
                             dataspec{i}.(dataspec{i}.name) = obj.data.(dataspec{i}.name);
-                            dataspec{i} = rmfield(dataspec{i}, {'size', 'type', 'name', 'mfmt'});                              
+                            dataspec{i} = rmfield(dataspec{i}, {'size', 'type', 'name', 'mfmt', 'order'});                              
                         end
                     catch err
                         warning('Could not process dataspec %d \n %s', i, err.message);
@@ -476,7 +510,6 @@ File format & i/o:
             for i = 1:length(fields(obj.selectors))
                selector_fields = fields(obj.selectors);
                selector = obj.selectors.(selector_fields{i});
-               
                
                for j = 1:(length(varargin)/2)
                    selector.set(varargin{2*(j-1)+1}, varargin{2*(j-1)+2})
