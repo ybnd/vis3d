@@ -7,6 +7,7 @@
             "size":[101,101,19], 
             "type":"double", 
             "mfmt":"ieee-le", 
+            "order":"row-major", 
             "path":"example.cube"
         }
     ], 

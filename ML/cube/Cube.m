@@ -191,6 +191,7 @@ File format & i/o:
 
             if do_save
                 path = remove_extension(path);
+                
 
                 meta_struct = {};
                 meta_struct.name = obj.name;

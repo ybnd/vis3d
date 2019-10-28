@@ -15,12 +15,7 @@ function savecube(C, path)
     
     % Normalize 'path'
     if ~java.io.File(path).isAbsolute()
-        if ~isempty(C.path)
-            [folder, ~, ~] = fileparts(C.path);
-        else
-            folder = pwd;
-        end
-        path = fullfile(folder, path);
+        path = fullfile(pwd, path);
     end
     
     % Cast path to char
