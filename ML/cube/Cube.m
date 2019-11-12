@@ -1,4 +1,4 @@
-classdef Cube < dynamicprops
+classdef Cube < matlab.mixin.Copyable
 % Interface to 3d data   
 
 %{

@@ -23,19 +23,23 @@ Groups multiple InteractiveMethod instances and provides an interface to select 
     end
     
     methods(Access=public)
-        function obj = InteractiveMethodSelector(name, items)
+        function obj = InteractiveMethodSelector(name, items, default_item)            
             obj.name = name;
             obj.items = items;
             
-            parname = [];
             item_fields = fields(items);
+            parname = []; % Number of parameters is uncertain
             for i = 1:length(item_fields)
-                parname = [parname items.(item_fields{i}).parname]; % inefficient seems ok in this case
+                parname = [parname, items.(item_fields{i}).parname]; %#ok, shouldn't be too taxing anyway
             end
             obj.parname = unique(parname);
             
-            item_fields = fields(items);
-            obj.select(item_fields{1});            
+            switch nargin
+                case 2
+                    default_item = item_fields{1};
+            end
+            
+            obj.select(default_item);            
         end
         
         function selected = select(obj, item)
