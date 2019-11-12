@@ -237,6 +237,19 @@ File format & i/o:
                 warning('Folder does not exist: %s', folder);
             end
         end
+        
+        function focuscurve(obj)
+            if isfield(obj.data, 'focus')
+                f = figure('Name', sprintf('%s - Focus curve', obj.name));
+                obj.figures = [obj.figures, f];
+                
+                plot(obj.data.focus(:,1) - obj.data.focus(1,1), obj.data.focus(:,2) - obj.data.focus(1,2))
+                xlabel('Relative Z-stage position (µm)'); ylabel('Relative focus stage position (µm)');
+                daspect([1,1,1])
+            else
+                warning('This Cube instance has no focus curve data!');
+            end
+        end
     end
     
     %% Interface to InteractiveMethods
