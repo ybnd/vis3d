@@ -18,7 +18,7 @@ classdef ocmCube < Cube
         function load(obj)
             % Overrides Cube.load
             % Load data in ocmbin format
-            if ~obj.is_loaded
+            if ~obj.check_if_loaded()
                 full_read = tic;            
                 obj.parseMetadata();           
                 obj.checkOverlap();
@@ -37,7 +37,7 @@ classdef ocmCube < Cube
                 obj.io_timings.fullReadTime = toc(full_read);
                 obj.io_timings.ReadRateMBs = obj.filesize_gb / read_time * 1024;
                 
-                obj.is_loaded = true;
+                obj.check_if_loaded();
             end
         end
     end  

@@ -81,93 +81,106 @@ File format & i/o:
         end
         
         function load(obj)
-            % Load data in json/binary format
-            
-            [folder, file, ~] = fileparts(obj.path);    
-            
-            % Read & load the .json header file
-            header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));            
-            obj.name = header.name; obj.desc = header.desc; obj.meta = header.meta;
-            
-            % Load datasets in header's 'data' field
-            for i = 1:length(header.data)
-                try
-                    d = header.data{i};
-                catch
-                    d = header.data;
-                end
-                if isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
-                    % Large dataset -> load from binary file
-                    
-                    % Resolve machine format
+            if ~obj.check_if_loaded()
+                % Load data in json/binary format
+
+                [folder, file, ~] = fileparts(obj.path);    
+
+                % Read & load the .json header file
+                header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));            
+                obj.name = header.name; obj.desc = header.desc; obj.meta = header.meta;
+
+                % Load datasets in header's 'data' field
+                for i = 1:length(header.data)
                     try
-                        machinefmt = d.mfmt;
-                    catch err
-                        warning(err.message)
-                        sprintf('Default machinefmt: %s', obj.mfmt);
-                        machinefmt = obj.mfmt;
+                        d = header.data{i};
+                    catch
+                        d = header.data;
                     end
-                    
-                    
-                    
-                    switch lower(machinefmt)
-                        case {'little-endian', 'le', 'ieee-le'}
-                            machinefmt = 'ieee-le';
-                        case {'big-endian', 'be', 'ieee-be'}
-                            machinefmt = 'ieee-be';
-                    end
-                    
-                    if length(d.size) > 1
-                        % Resolve binary order
+                    if isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
+                        % Large dataset -> load from binary file
+
+                        % Resolve machine format
                         try
-                            binorder = d.order;
+                            machinefmt = d.mfmt;
                         catch err
-                            warning('Assuming MATLAB-style, column-major ordered binary file. If the cube is mangled, try with <>.cube = permute(<>.cube, [2,1,3])');
-                            binorder = 'column-major'; 
+                            warning(err.message)
+                            sprintf('Default machinefmt: %s', obj.mfmt);
+                            machinefmt = obj.mfmt;
                         end
-                        
-                        switch lower(binorder)
-                            case {'column', 'column-major', 'c'}
-                                binorder = 'column-major';
-                            case {'row', 'row-major', 'r'}
-                                binorder = 'row-major';
+
+
+
+                        switch lower(machinefmt)
+                            case {'little-endian', 'le', 'ieee-le'}
+                                machinefmt = 'ieee-le';
+                            case {'big-endian', 'be', 'ieee-be'}
+                                machinefmt = 'ieee-be';
                         end
-                    end
-                    
-                    % Read from binary file
-                    fid = fopen([folder '/' d.path], 'rb+');   
-                    A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
-                    fclose(fid);
-                    
-                    % Transform to correct shape (height x width x slice, row-major for LabVIEW & FIJI compatibility)
-                    if length(d.size) > 1 && strcmp(binorder, 'row-major')
-                        d.size(1:(length(d.size)-1)) = d.size((length(d.size)-1):-1:1);
-                        A = reshape(A, d.size');
-                        A = permute(A, [(length(d.size)-1):-1:1, length(d.size)]);
+
+                        if length(d.size) > 1
+                            % Resolve binary order
+                            try
+                                binorder = d.order;
+                            catch err
+                                warning('Assuming MATLAB-style, column-major ordered binary file. If the cube is mangled, try with <>.cube = permute(<>.cube, [2,1,3])');
+                                binorder = 'column-major'; 
+                            end
+
+                            switch lower(binorder)
+                                case {'column', 'column-major', 'c'}
+                                    binorder = 'column-major';
+                                case {'row', 'row-major', 'r'}
+                                    binorder = 'row-major';
+                            end
+                        end
+
+                        % Read from binary file
+                        fid = fopen([folder '/' d.path], 'rb+');   
+                        A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
+                        fclose(fid);
+
+                        % Transform to correct shape (height x width x slice, row-major for LabVIEW & FIJI compatibility)
+                        if length(d.size) > 1 && strcmp(binorder, 'row-major')
+                            d.size(1:(length(d.size)-1)) = d.size((length(d.size)-1):-1:1);
+                            A = reshape(A, d.size');
+                            A = permute(A, [(length(d.size)-1):-1:1, length(d.size)]);
+                        else
+                            A = reshape(A, d.size');
+                        end                   
+
+                        switch d.name
+                            case 'cube'
+                                obj.cube = A;
+                            otherwise
+                                obj.data.(d.name) = A;
+                        end                    
+                    elseif length(fields(d)) == 1
+                        % Small dataset -> load from header
+                        dfields = fields(d);
+                        obj.data.(dfields{1}) = d.(dfields{1});
                     else
-                        A = reshape(A, d.size');
-                    end                   
-                    
-                    switch d.name
-                        case 'cube'
-                            obj.cube = A;
-                        otherwise
-                            obj.data.(d.name) = A;
-                    end                    
-                elseif length(fields(d)) == 1
-                    % Small dataset -> load from header
-                    dfields = fields(d);
-                    obj.data.(dfields{1}) = d.(dfields{1});
-                else
-                    warning('Unrecognized specification for data field %s', d);                    
-                end
-            end            
-        end        
+                        warning('Unrecognized specification for data field %s', d);                    
+                    end
+                end      
+                obj.check_if_loaded()
+            end
+        end     
+        
+        function [is_loaded] = check_if_loaded(obj)
+            if numel(obj.cube) > 1
+                obj.is_loaded = true; 
+            else
+                obj.is_loaded = false;
+            end
+            
+            is_loaded = obj.is_loaded;
+        end
         
         function unload(obj)
             % Flush data from memory, but keep the interface & metadata
             if obj.is_loaded
-                obj.cube = zeros(1,1,1);
+                obj.cube = [];
                 obj.data = {};
                 close(obj.figures)
                 

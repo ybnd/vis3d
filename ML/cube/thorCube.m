@@ -12,7 +12,7 @@ classdef thorCube < Cube
     methods(Access = public)
         function load(obj) 
             % Load data in .oct format
-            if ~obj.is_loaded
+            if ~obj.check_if_loaded()
                 if isempty(fields(obj.h))
                     % Get .oct file handle (can take quite a while to load with the whole unzipping business)
                     % OCTFileOpen7ZIP overrides the original files use of unzip with a system call to 7zip for speed
@@ -44,7 +44,7 @@ classdef thorCube < Cube
                 obj.name = obj.path;  
                 obj.desc = '...';
 
-                obj.is_loaded = true;
+                obj.check_if_loaded();
             end
         end
         

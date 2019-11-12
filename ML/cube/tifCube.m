@@ -15,14 +15,14 @@ classdef tifCube < Cube
             % Requires 'Multipage TIFF stack' to be in the MATLAB path
             % https://nl.mathworks.com/matlabcentral/fileexchange/35684-multipage-tiff-stack?focused=7519470&tab=function
             
-            if ~obj.is_loaded
+            if ~obj.check_if_loaded()
                 obj.meta = imfinfo(obj.path);
                 obj.cube = loadtiff(obj.path);     
                 
                 [~,~,Nz] = size(obj.cube);
                 obj.data.zpos = 0:Nz;
                 
-                obj.is_loaded = true;
+                obj.check_if_loaded();
             end
         end  
         
