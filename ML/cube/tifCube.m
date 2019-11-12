@@ -7,25 +7,30 @@ classdef tifCube < Cube
         options
     end
     
-    %% File I/O methods
-    methods(Access = public)
-        function load(obj)
+    %% .tif stack I/O methods
+    methods(Access = protected)
+        function load_data(obj)
             % Load data from .tif stack file
             
             % Requires 'Multipage TIFF stack' to be in the MATLAB path
             % https://nl.mathworks.com/matlabcentral/fileexchange/35684-multipage-tiff-stack?focused=7519470&tab=function
             
-            if ~obj.check_if_loaded()
-                obj.meta = imfinfo(obj.path);
-                obj.cube = loadtiff(obj.path);     
-                
-                [~,~,Nz] = size(obj.cube);
-                obj.data.zpos = 0:Nz;
-                
-                obj.check_if_loaded();
-            end
+            obj.meta = imfinfo(obj.path);
+            obj.cube = loadtiff(obj.path);     
+
+            [~,~,Nz] = size(obj.cube);
+            obj.data.zpos = 0:Nz;
         end  
         
+        function save_data(obj, path)
+            if exist(path, 'file')  % Already confirmed overwrite, delete to avoid saveastiff() error.
+                delete(path)
+            end
+            saveastiff(obj.cube, path, obj.options); 
+        end
+    end
+    
+    methods(Access = public)
         function set_options(obj, options)
             switch nargin
                 case 1
@@ -33,26 +38,6 @@ classdef tifCube < Cube
             end
             
             obj.options = options;
-        end
-        
-        function save(obj, path)
-            switch nargin
-                case 1
-                    path = '';
-            end
-            
-            if isempty(path)
-               path = [remove_extension(obj.path) '.tif']; 
-            end
-            
-            [do_save, path] = obj.resolve_save(path);
-            
-            if do_save
-                if exist(path, 'file')  % Already confirmed overwrite, delete to avoid saveastiff() error.
-                    delete(path)
-                end
-                saveastiff(obj.cube, path, obj.options); 
-            end
         end
     end
 end

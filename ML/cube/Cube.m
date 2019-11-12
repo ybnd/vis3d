@@ -45,7 +45,7 @@ File format & i/o:
     methods
         function obj = Cube(path, do_load)
             % Initializes a Cube instance. 
-            % To create an interface to a 3d image file without opening it, call with do_load=false
+            % To create an interface to a file without opening it, call with do_load=false
             
             switch nargin
                 case 0
@@ -56,133 +56,42 @@ File format & i/o:
             end
 
             % Cast path to char
-            obj.path = char(path);
-            
+            obj.path = char(path);            
             obj.check_path
             
-            obj.selectors = interactive_methods;
+            obj.selectors = interactive_methods();
             
             if do_load
-                obj.load
+                obj.load()
                 obj.get_range()
             end
         end    
     end
     
-    %% File I/O methods    
-    methods(Access = public)        
-        function sobj = saveobj(obj)
-            % Invoked when saving a Cube instance to a .mat file
-            %   * Cube instances loaded from .mat files can be used after calling obj.load to load their data
-            %   * Keep in mind that old .mat files contain OLD IMPLEMENTATIONS, and will not work 
-            
-            sobj = obj;  
-            sobj.unload()                              
-        end
-        
+    %% High-level File I/O methods    
+    methods(Access = public)              
         function load(obj)
             if ~obj.check_if_loaded()
-                % Load data in json/binary format
-
-                [folder, file, ~] = fileparts(obj.path);    
-
-                % Read & load the .json header file
-                header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));            
-                obj.name = header.name; obj.desc = header.desc; obj.meta = header.meta;
-
-                % Load datasets in header's 'data' field
-                for i = 1:length(header.data)
-                    try
-                        d = header.data{i};
-                    catch
-                        d = header.data;
-                    end
-                    if isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
-                        % Large dataset -> load from binary file
-
-                        % Resolve machine format
-                        try
-                            machinefmt = d.mfmt;
-                        catch err
-                            warning(err.message)
-                            sprintf('Default machinefmt: %s', obj.mfmt);
-                            machinefmt = obj.mfmt;
-                        end
-
-
-
-                        switch lower(machinefmt)
-                            case {'little-endian', 'le', 'ieee-le'}
-                                machinefmt = 'ieee-le';
-                            case {'big-endian', 'be', 'ieee-be'}
-                                machinefmt = 'ieee-be';
-                        end
-
-                        if length(d.size) > 1
-                            % Resolve binary order
-                            try
-                                binorder = d.order;
-                            catch err
-                                warning('Assuming MATLAB-style, column-major ordered binary file. If the cube is mangled, try with <>.cube = permute(<>.cube, [2,1,3])');
-                                binorder = 'column-major'; 
-                            end
-
-                            switch lower(binorder)
-                                case {'column', 'column-major', 'c'}
-                                    binorder = 'column-major';
-                                case {'row', 'row-major', 'r'}
-                                    binorder = 'row-major';
-                            end
-                        end
-
-                        % Read from binary file
-                        fid = fopen([folder '/' d.path], 'rb+');   
-                        A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
-                        fclose(fid);
-
-                        % Transform to correct shape (height x width x slice, row-major for LabVIEW & FIJI compatibility)
-                        if length(d.size) > 1 && strcmp(binorder, 'row-major')
-                            d.size(1:(length(d.size)-1)) = d.size((length(d.size)-1):-1:1);
-                            A = reshape(A, d.size');
-                            A = permute(A, [(length(d.size)-1):-1:1, length(d.size)]);
-                        else
-                            A = reshape(A, d.size');
-                        end                   
-
-                        switch d.name
-                            case 'cube'
-                                obj.cube = A;
-                            otherwise
-                                obj.data.(d.name) = A;
-                        end                    
-                    elseif length(fields(d)) == 1
-                        % Small dataset -> load from header
-                        dfields = fields(d);
-                        obj.data.(dfields{1}) = d.(dfields{1});
-                    else
-                        warning('Unrecognized specification for data field %s', d);                    
-                    end
-                end      
+                obj.load_data()
                 obj.check_if_loaded()
             end
         end     
-        
-        function [is_loaded] = check_if_loaded(obj)
-            if numel(obj.cube) > 1
-                obj.is_loaded = true; 
-            else
-                obj.is_loaded = false;
-            end
-            
-            is_loaded = obj.is_loaded;
-        end
-        
+
         function unload(obj)
             % Flush data from memory, but keep the interface & metadata
             if obj.is_loaded
                 obj.cube = [];
                 obj.data = {};
-                close(obj.figures)
+                
+                if ~isempty(obj.figures)
+                    for f = obj.figures
+                        if isvalid(f)
+                            delete(f)
+                        end
+                    end
+                end
+                
+                obj.figures = [];
                 
                 obj.is_loaded = false;
             end
@@ -203,109 +112,20 @@ File format & i/o:
             [do_save, path] = obj.resolve_save(path);
 
             if do_save
-                path = remove_extension(path);
-                
-
-                meta_struct = {};
-                meta_struct.name = obj.name;
-                meta_struct.desc = obj.desc;
-
-                % For each dataset (obj.cube and all datasets in obj.data), return
-                %       - dataset name
-                %       - size vector
-                %       - datatype
-
-                dataspec = cell(length(obj.data)+1,1);
-
-                % Cube data
-                dataspec{1} = struct( ...
-                    'name', 'cube', 'size', size(obj.cube), 'type', class(obj.cube), ...
-                    'mfmt', obj.mfmt, 'order', 'row-major' ...
-                );      
-
-                % Arbitrary data
-                datasets = fields(obj.data);
-                for i = 1:length(datasets)
-                    d = datasets{i};
-                    dataspec{1+i} = struct( ...
-                        'name', datasets{i}, 'size', size(obj.data.(d)), ...
-                        'type', class(obj.data.(d)), 'mfmt', obj.mfmt, 'order', 'row-major');
+                if ~obj.check_if_loaded()
+                    obj.load()
                 end
-
-                % Remove empty fields from dataspec
-                dataspec = dataspec(~cellfun('isempty', dataspec));
-
-                
-                for i = 1:length(dataspec)
-                    try
-                        if prod(dataspec{i}.size) > obj.minsize || strcmp(dataspec{i}.name, 'cube')
-                            % Large dataset -> save to a binary file (always save obj.cube to binary)
-                            if strcmp(dataspec{i}.name, 'cube')
-                                id = 'cube';
-                                data_i = obj.cube;
-                            else
-                                id = sprintf('data%s', num2str(i-2));  % i.e. cube is dataset 0;
-                                data_i = obj.data.(dataspec{i}.name);
-                            end
-                            
-                            savepath = sprintf('%s.%s', path, id);
-                            [~, savename, saveext] = fileparts(savepath);
-                            dataspec{i}.path = [savename, saveext];
-                            
-                            if length(size(data_i)) > 1
-                                % Row major order for each slice
-                                data_i = permute(data_i, [(length(size(data_i))-1):-1:1, length(size(data_i))]);
-                            end
-                            
-                            fid = fopen(savepath, 'wb+');
-                            fwrite(fid, data_i, dataspec{i}.type, dataspec{i}.mfmt);
-                            fclose(fid);
-                        else
-                            % Small dataset -> save to .json
-                            dataspec{i}.(dataspec{i}.name) = obj.data.(dataspec{i}.name);
-                            dataspec{i} = rmfield(dataspec{i}, {'size', 'type', 'name', 'mfmt', 'order'});                              
-                        end
-                    catch err
-                        warning('Could not process dataspec %d \n %s', i, err.message);
-                    end
-                end
-
-                meta_struct.data = dataspec;
-                meta_struct.meta = obj.meta;  
-
-                % Write .json file
-                fid = fopen(sprintf('%s.json', path), 'w+');
-                fprintf(fid, '%s', prettyjson(jsonencode(meta_struct)));
-                fclose(fid);    
+                obj.save_data(path)
             end
         end
-    end
-    
-    methods(Access = protected)        
-        function [do_save, path] = resolve_save(obj, path)
-            % Save to obj.path if 'path' not specified.            
-            do_save = true;
+
+        function sobj = saveobj(obj)
+            % Invoked when saving a Cube instance to a .mat file (called by builtin method `save`)
+            %   * Cube instances loaded from .mat files can be used after calling obj.load to load their data
+            %   * Keep in mind that old .mat files contain OLD IMPLEMENTATIONS, and will not work 
             
-            switch nargin
-                case 1
-                    path = remove_extension(obj.path);
-            end
-            
-            % If 'path' already exists, prompt user whether to overwrite
-            if exist(path, 'file') == 2 || exist([path, '.json'], 'file') == 2
-                switch lower(input(sprintf('Overwrite file %s? (y/n) \n', strrep(path, '\', '\\')), 's'))
-                    case {'y', 't', '1'}
-                        do_save = true;
-                    case {'n', 'f', '0'}      
-                        do_save = false;
-                end
-            end
-        end
-        
-        function check_path(obj)
-            if ~isfile(obj.path) && ~isfile(sprintf('%s.json', obj.path)) && ~isempty(obj.path)
-                error('File does not exist: %s', obj.path);
-            end
+            sobj = obj;  
+            sobj.unload()                              
         end
     end
     
@@ -415,38 +235,6 @@ File format & i/o:
                 winopen(folder)
             else
                 warning('Folder does not exist: %s', folder);
-            end
-        end
-    end
-    
-    %% Lower-level interface to Cube data
-    methods(Access=public)               
-        function z = zpos(obj)
-            % Returns the Z-position vector
-            %   * If there is no explicit Z-position vector, returns a vector of indeces in the Z axis
-            
-            if isfield(obj.data, 'zpos')
-                z = obj.data.zpos;
-            else
-                [~,~,Nz] = size(obj.cube);
-                z = 1:Nz;
-            end
-        end
-        
-        function z = position(obj)
-            % Alias for obj.zpos
-            z = obj.zpos();
-        end
-        
-        function get_range(obj)
-            if isempty(obj.range)
-                if ~isempty(obj.cube)
-                    obj.range = [rmin(obj.cube), rmax(obj.cube)];
-                    obj.im_set('global range', obj.range);
-                else
-                    obj.range = [0 2^32];
-                    warning('Could not get global range: data not loaded!')
-                end
             end
         end
     end
@@ -579,5 +367,235 @@ File format & i/o:
                values = values{1}; 
             end
         end
+    end
+    
+    %% Lower-level interface to Cube data
+    methods(Access=public)               
+        function z = zpos(obj)
+            % Returns the Z-position vector
+            %   * If there is no explicit Z-position vector, returns a vector of indeces in the Z axis
+            
+            if isfield(obj.data, 'zpos')
+                z = obj.data.zpos;
+            else
+                [~,~,Nz] = size(obj.cube);
+                z = 1:Nz;
+            end
+        end
+        
+        function z = position(obj)
+            % Alias for obj.zpos
+            z = obj.zpos();
+        end
+        
+        function get_range(obj)
+            if isempty(obj.range)
+                if ~isempty(obj.cube)
+                    obj.range = [rmin(obj.cube), rmax(obj.cube)];
+                    obj.im_set('global range', obj.range);
+                else
+                    obj.range = [0 2^32];
+                    warning('Could not get global range: data not loaded!')
+                end
+            end
+        end
+    end
+    
+    %% Low-level file I/O methods
+    
+    methods(Access=protected)
+        function [is_loaded] = check_if_loaded(obj)
+            if numel(obj.cube) > 1
+                obj.is_loaded = true; 
+            else
+                obj.is_loaded = false;
+            end
+            
+            is_loaded = obj.is_loaded;
+        end
+        
+        function [do_save, path] = resolve_save(obj, path)
+            % Save to obj.path if 'path' not specified.            
+            do_save = true;
+            
+            switch nargin
+                case 1
+                    path = remove_extension(obj.path);
+            end
+            
+            % If 'path' already exists, prompt user whether to overwrite
+            if exist(path, 'file') == 2 || exist([path, '.json'], 'file') == 2
+                switch lower(input(sprintf('Overwrite file %s? (y/n) \n', strrep(path, '\', '\\')), 's'))
+                    case {'y', 't', '1'}
+                        do_save = true;
+                    case {'n', 'f', '0'}      
+                        do_save = false;
+                end
+            end
+        end
+        
+        function check_path(obj)
+            if ~isfile(obj.path) && ~isfile(sprintf('%s.json', obj.path)) && ~isempty(obj.path)
+                error('File does not exist: %s', obj.path);
+            end
+        end
+ 
+        function load_data(obj)
+            % Load data in json/binary format
+            [folder, file, ~] = fileparts(obj.path);    
+
+            % Read & load the .json header file
+            header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));            
+            obj.name = header.name; obj.desc = header.desc; obj.meta = header.meta;
+
+            % Load datasets in header's 'data' field
+            for i = 1:length(header.data)
+                try
+                    d = header.data{i};
+                catch
+                    d = header.data;
+                end
+                if isfield(d,'name') && isfield(d,'size') && isfield(d,'type') && isfield(d,'path')
+                    % Large dataset -> load from binary file
+
+                    % Resolve machine format
+                    try
+                        machinefmt = d.mfmt;
+                    catch err
+                        warning(err.message)
+                        sprintf('Default machinefmt: %s', obj.mfmt);
+                        machinefmt = obj.mfmt;
+                    end
+
+                    switch lower(machinefmt)
+                        case {'little-endian', 'le', 'ieee-le'}
+                            machinefmt = 'ieee-le';
+                        case {'big-endian', 'be', 'ieee-be'}
+                            machinefmt = 'ieee-be';
+                    end
+
+                    if length(d.size) > 1
+                        % Resolve binary order
+                        try
+                            binorder = d.order;
+                        catch err
+                            warning('Assuming MATLAB-style, column-major ordered binary file. If the cube is mangled, try with <>.cube = permute(<>.cube, [2,1,3])');
+                            binorder = 'column-major'; 
+                        end
+
+                        switch lower(binorder)
+                            case {'column', 'column-major', 'c'}
+                                binorder = 'column-major';
+                            case {'row', 'row-major', 'r'}
+                                binorder = 'row-major';
+                        end
+                    end
+
+                    % Read from binary file
+                    fid = fopen([folder '/' d.path], 'rb+');   
+                    A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
+                    fclose(fid);
+
+                    % Transform to correct shape (height x width x slice, row-major for LabVIEW & FIJI compatibility)
+                    if length(d.size) > 1 && strcmp(binorder, 'row-major')
+                        d.size(1:(length(d.size)-1)) = d.size((length(d.size)-1):-1:1);
+                        A = reshape(A, d.size');
+                        A = permute(A, [(length(d.size)-1):-1:1, length(d.size)]);
+                    else
+                        A = reshape(A, d.size');
+                    end                   
+
+                    switch d.name
+                        case 'cube'
+                            obj.cube = A;
+                        otherwise
+                            obj.data.(d.name) = A;
+                    end                    
+                elseif length(fields(d)) == 1
+                    % Small dataset -> load from header
+                    dfields = fields(d);
+                    obj.data.(dfields{1}) = d.(dfields{1});
+                else
+                    warning('Unrecognized specification for data field %s', d);                    
+                end
+            end      
+        end
+                 
+        function save_data(obj, path)
+            path = remove_extension(path);
+
+            meta_struct = {};
+            meta_struct.name = obj.name;
+            meta_struct.desc = obj.desc;
+
+            % For each dataset (obj.cube and all datasets in obj.data), return
+            %       - dataset name
+            %       - size vector
+            %       - datatype
+
+            dataspec = cell(length(obj.data)+1,1);
+
+            % Cube data
+            dataspec{1} = struct( ...
+                'name', 'cube', 'size', size(obj.cube), 'type', class(obj.cube), ...
+                'mfmt', obj.mfmt, 'order', 'row-major' ...
+            );      
+
+            % Arbitrary data
+            datasets = fields(obj.data);
+            for i = 1:length(datasets)
+                d = datasets{i};
+                dataspec{1+i} = struct( ...
+                    'name', datasets{i}, 'size', size(obj.data.(d)), ...
+                    'type', class(obj.data.(d)), 'mfmt', obj.mfmt, 'order', 'row-major');
+            end
+
+            % Remove empty fields from dataspec
+            dataspec = dataspec(~cellfun('isempty', dataspec));
+
+
+            for i = 1:length(dataspec)
+                try
+                    if prod(dataspec{i}.size) > obj.minsize || strcmp(dataspec{i}.name, 'cube')
+                        % Large dataset -> save to a binary file (always save obj.cube to binary)
+                        if strcmp(dataspec{i}.name, 'cube')
+                            id = 'cube';
+                            data_i = obj.cube;
+                        else
+                            id = sprintf('data%s', num2str(i-2));  % i.e. cube is dataset 0;
+                            data_i = obj.data.(dataspec{i}.name);
+                        end
+
+                        savepath = sprintf('%s.%s', path, id);
+                        [~, savename, saveext] = fileparts(savepath);
+                        dataspec{i}.path = [savename, saveext];
+
+                        if length(size(data_i)) > 1
+                            % Row major order for each slice
+                            data_i = permute(data_i, [(length(size(data_i))-1):-1:1, length(size(data_i))]);
+                        end
+
+                        fid = fopen(savepath, 'wb+');
+                        fwrite(fid, data_i, dataspec{i}.type, dataspec{i}.mfmt);
+                        fclose(fid);
+                    else
+                        % Small dataset -> save to .json
+                        dataspec{i}.(dataspec{i}.name) = obj.data.(dataspec{i}.name);
+                        dataspec{i} = rmfield(dataspec{i}, {'size', 'type', 'name', 'mfmt', 'order'});                              
+                    end
+                catch err
+                    warning('Could not process dataspec %d \n %s', i, err.message);
+                end
+            end
+
+            meta_struct.data = dataspec;
+            meta_struct.meta = obj.meta;  
+
+            % Write .json file
+            fid = fopen(sprintf('%s.json', path), 'w+');
+            fprintf(fid, '%s', prettyjson(jsonencode(meta_struct)));
+            fclose(fid);    
+        end
+        
     end
 end

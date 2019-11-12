@@ -12,33 +12,29 @@ classdef ocmCube < Cube
     
  
     
-    %% File I/O methods
-    
-    methods(Access = public)            
-        function load(obj)
-            % Overrides Cube.load
+    %% .ocmbin file I/O methods
+    methods(Access = protected)            
+        function load_data(obj)
             % Load data in ocmbin format
-            if ~obj.check_if_loaded()
-                full_read = tic;            
-                obj.parseMetadata();           
-                obj.checkOverlap();
+            full_read = tic;            
+            obj.parseMetadata();           
+            obj.checkOverlap();
 
-                data_read = tic;
-    %             try
-                    obj.extractData2()                
-    %             catch
-    %                 warning('Data cannot be loaded')
-    %             end
+            data_read = tic;
+%             try
+                obj.extractData2()                
+%             catch
+%                 warning('Data cannot be loaded')
+%             end
 
-                read_time = toc(data_read);
+            read_time = toc(data_read);
 
-                obj.io_timings.writeTime = obj.meta.Time.ElapsedTime;
-                obj.io_timings.dataReadTime = read_time;
-                obj.io_timings.fullReadTime = toc(full_read);
-                obj.io_timings.ReadRateMBs = obj.filesize_gb / read_time * 1024;
-                
-                obj.check_if_loaded();
-            end
+            obj.io_timings.writeTime = obj.meta.Time.ElapsedTime;
+            obj.io_timings.dataReadTime = read_time;
+            obj.io_timings.fullReadTime = toc(full_read);
+            obj.io_timings.ReadRateMBs = obj.filesize_gb / read_time * 1024;
+
+            obj.check_if_loaded();
         end
     end  
     
