@@ -73,7 +73,7 @@ File format & i/o:
         function load(obj)
             if ~obj.check_if_loaded()
                 obj.load_data()
-                obj.check_if_loaded()
+                obj.check_if_loaded();
             end
         end     
 
