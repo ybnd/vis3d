@@ -1,6 +1,6 @@
 # vis3d
 
-Basic 3d image visualization for OCT and OCM data.
+Basic 3d image visualization and analysis, mostly for OCT and OCM data
 
 ### Getting started
 
