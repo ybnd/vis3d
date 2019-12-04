@@ -8,6 +8,9 @@ folder = [pwd '\vis3d\ML\examples']; % Current folder should include vis3d
 
 A = loadcube([folder '\example']);
 
+% The most important stuff's in the help string!
+help A
+
 %% Loading 3d image files: .tif stacks
 
 T = loadcube([folder '\example.tif']);
