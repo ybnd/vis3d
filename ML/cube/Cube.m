@@ -1,5 +1,18 @@
 classdef Cube < matlab.mixin.Copyable
-% Interface to 3d data   
+% Interface to 3d image data   
+%
+%  Methods:
+%  --------
+%    sf      slice figure           (default: xy-plane)
+%    of      orthographic figure    (xy, xz and yz planes)
+%    
+%  Properties:
+%  -----------
+%    cube    3d image matrix
+%    zpos    Z position vector
+%    data    additional data
+%    meta    file metadata
+
 
 %{
 Description:
@@ -240,14 +253,58 @@ File format & i/o:
         
         function focuscurve(obj)
             if isfield(obj.data, 'focus')
+                curves = obj.data.focus;
+            elseif isfield(obj.data, 'focuscurve')
+                curves = obj.data.focuscurve;
+            else
+                curves = [];
+            end
+            
+            if  ~isempty(curves)
                 f = figure('Name', sprintf('%s - Focus curve', obj.name));
                 obj.figures = [obj.figures, f];
                 
-                plot(obj.data.focus(:,1) - obj.data.focus(1,1), obj.data.focus(:,2) - obj.data.focus(1,2))
+                plot(curves(:,1) - curves(1,1), curves(:,2) - curves(1,2))
                 xlabel('Relative Z-stage position (µm)'); ylabel('Relative focus stage position (µm)');
                 daspect([1,1,1])
             else
-                warning('This Cube instance has no focus curve data!');
+                warning('File has no focus curve data!');
+            end
+        end
+        
+        function parcurve(obj)
+            zpos = obj.zpos;
+            
+            if isfield(obj.data, 'autocurve')
+                curves = obj.data.autocurve;
+            elseif isfield(obj.data, 'parcurves')
+                curves = obj.data.parcurves;
+            else
+                curves = [];
+            end
+            
+            if  ~isempty(curves)       
+                parameters = {obj.meta.parCurves.Curves.Parameter}; % todo: this can fail ~ changing LabVIEW code!
+                
+                if length(parameters) == 1
+                    f = figure('Name', sprintf('%s - Parameter curve', obj.name));
+                else
+                    f = figure('Name', sprintf('%s - Parameter curves', obj.name));
+                end
+                obj.figures = [obj.figures, f];
+                
+                for i = 1:length(parameters)
+                    subplot(length(parameters),1,i)
+                    plot(zpos - zpos(1), curves(:,i) - curves(1,i))
+                    ylabel(parameters{i});
+                    if i == length(parameters)
+                        xlabel('Relative Z-stage position (µm)'); 
+                    else
+                        set(gca, 'XTickLabel', []);
+                    end
+                end
+            else
+                warning('File has no parameter curve data!');
             end
         end
     end
@@ -390,6 +447,8 @@ File format & i/o:
             
             if isfield(obj.data, 'zpos')
                 z = obj.data.zpos;
+            elseif isfield(obj.data, 'position')
+                z = obj.data.position;
             else
                 [~,~,Nz] = size(obj.cube);
                 z = 1:Nz;
