@@ -565,17 +565,30 @@ File format & i/o:
 
                     % Read from binary file
                     fid = fopen([folder '/' d.path], 'rb+');   
+                    % Only reads as many elements from the file as defined in d.size
+                    %   -> If file is too long, cropped to match d.size by default
                     A = cast(fread(fid, prod(d.size), d.type, 0, machinefmt), d.type);
                     fclose(fid);
 
                     % Transform to correct shape (height x width x slice, row-major for LabVIEW & FIJI compatibility)
+                    if numel(A) ~= prod(d.size)    
+                        extra = '';
+                        if numel(A) < prod(d.size)
+                            % Binary file is too short -> probably an interrupted measurement
+                            %   => zero-pad to fit
+                            A(end+1:end+(prod(d.size)-numel(A))) = 0;
+                        end
+                        warning('Could not reshape binary data in `%s` to %s. \n Expected %d elements, but file contains %d elements. \n Zero-padding to match defined shape', ...
+                            d.path, mat2str(d.size'), prod(d.size), numel(A), extra) 
+                    end
+                    
                     if length(d.size) > 1 && strcmp(binorder, 'row-major')
                         d.size(1:(length(d.size)-1)) = d.size((length(d.size)-1):-1:1);
                         A = reshape(A, d.size');
                         A = permute(A, [(length(d.size)-1):-1:1, length(d.size)]);
                     else
                         A = reshape(A, d.size');
-                    end                   
+                    end     
 
                     switch d.name
                         case 'cube'
