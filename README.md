@@ -19,3 +19,6 @@ Basic 3d image visualization and analysis, mostly for OCT and OCM data
 
 4. You should be done! There's a [tutorial](ML/examples/tutorial.md) with some super small example images.
 
+### Licensing
+
+As of now, the license for this repository is not yet determined. All rights are held by KU Leuven.
