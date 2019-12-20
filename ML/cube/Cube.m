@@ -70,13 +70,14 @@ File format & i/o:
 
             % Cast path to char
             obj.path = char(path);            
-            obj.check_path
+            if obj.check_path
             
-            obj.selectors = interactive_methods();
-            
-            if do_load
-                obj.load()
-                obj.get_range()
+                obj.selectors = interactive_methods();
+
+                if do_load
+                    obj.load()
+                    obj.get_range()
+                end
             end
         end    
     end
@@ -139,6 +140,50 @@ File format & i/o:
             
             sobj = obj;  
             sobj.unload()                              
+        end
+        
+        function update(obj)
+        % Fix filename mismatch issues
+        %   Use case: fixing header when renaming files (rename the header and call this method)
+        
+            % Update name to match path
+            [~, fname, ~] = fileparts(obj.path);
+            obj.name = fname;
+            
+            % Commit current path & name to header
+            header = obj.load_header;    
+            header.name = obj.name;
+            header.path = obj.path;
+            
+            % Check if obj.path matches any data files in header.data
+            if obj.is_loaded
+                was_loaded = true;
+                obj.unload;
+            else 
+                was_loaded = false;
+            end
+            
+            [root, ~, ~] = fileparts(obj.path);
+            
+            for i = 1:length(header.data)
+                if isfield(header.data{i}, 'path')
+                    [dir, ~, ext] = fileparts(header.data{i}.path);
+                    new_path = sprintf('%s%s', [dir obj.name], ext);
+                    
+                    try
+                        movefile(fullfile(root, header.data{i}.path), fullfile(root, new_path));
+                        header.data{i}.path = new_path;
+                    catch err
+                        warning(err.message);
+                    end
+                end
+            end        
+            
+            obj.save_header(header, obj.path);
+            
+            if was_loaded
+                obj.load;
+            end
         end
     end
     
@@ -506,18 +551,30 @@ File format & i/o:
             end
         end
         
-        function check_path(obj)
+        function path_ok = check_path(obj)
+            path_ok = false;
             if ~isfile(obj.path) && ~isfile(sprintf('%s.json', obj.path)) && ~isempty(obj.path)
-                error('File does not exist: %s', obj.path);
+                warning('File does not exist: %s', obj.path);
+            else
+                path_ok = true;
             end
+        end
+        
+        function header = load_header(obj)
+            if obj.check_path
+                [folder, file, ~] = fileparts(obj.path);
+                header = jsondecode(fileread(sprintf('%s.json', fullfile(folder,file))));  
+            else
+                error('No JSON file at path %s', obj.path)
+            end             
         end
  
         function load_data(obj)
             % Load data in json/binary format
-            [folder, file, ~] = fileparts(obj.path);    
+            [folder, ~, ~] = fileparts(obj.path);    
 
-            % Read & load the .json header file
-            header = jsondecode(fileread(sprintf('%s/%s.json', folder, file)));            
+            % Load basic info from header
+            header = obj.load_header;         
             obj.name = header.name; obj.desc = header.desc; obj.meta = header.meta;
 
             % Load datasets in header's 'data' field
@@ -551,7 +608,7 @@ File format & i/o:
                         try
                             binorder = d.order;
                         catch err
-                            warning('Assuming MATLAB-style, column-major ordered binary file. If the cube is mangled, try with <>.cube = permute(<>.cube, [2,1,3])');
+                            warning('Assuming MATLAB-style, column-major ordered binary file. If the cube looks mangled, try with modifying it with <>.cube = permute(<>.cube, [2,1,3])');
                             binorder = 'column-major'; 
                         end
 
@@ -605,13 +662,26 @@ File format & i/o:
                 end
             end      
         end
+        
+        function save_header(~, header, path)
+            % Write .json file
+            
+            [dir, fname, ext] = fileparts(path);
+            if ~strcmp(ext, 'json')
+               path = fullfile(dir,sprintf('%s.json', fname));
+            end
+            
+            fid = fopen(path, 'w+');
+            fprintf(fid, '%s', prettyjson(jsonencode(header)));
+            fclose(fid);    
+        end
                  
         function save_data(obj, path)
             path = remove_extension(path);
 
-            meta_struct = {};
-            meta_struct.name = obj.name;
-            meta_struct.desc = obj.desc;
+            header = {};
+            header.name = obj.name;
+            header.desc = obj.desc;
 
             % For each dataset (obj.cube and all datasets in obj.data), return
             %       - dataset name
@@ -673,13 +743,10 @@ File format & i/o:
                 end
             end
 
-            meta_struct.data = dataspec;
-            meta_struct.meta = obj.meta;  
+            header.data = dataspec;
+            header.meta = obj.meta;  
 
-            % Write .json file
-            fid = fopen(sprintf('%s.json', path), 'w+');
-            fprintf(fid, '%s', prettyjson(jsonencode(meta_struct)));
-            fclose(fid);    
+            obj.save_header(header,path);  
         end
         
     end
