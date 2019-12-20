@@ -21,4 +21,4 @@ Basic 3d image visualization and analysis, mostly for OCT and OCM data
 
 ### Licensing
 
-As of now, the license for this repository is not yet determined. All rights are held by KU Leuven.
+As of now, an appropriate license for this repository has not been determined yet. All rights are held by KU Leuven.
