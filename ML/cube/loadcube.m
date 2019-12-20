@@ -5,7 +5,7 @@ function C = loadcube(path, do_load)
 
     switch nargin
         case 1
-            do_load = true;
+            do_load = true; % By default, read the data into memory!
     end
 
     % Cast path to char
